@@ -1,0 +1,108 @@
+---
+title: "Multivariate Regression Modelling"
+output: html_document
+---
+To get a summary look of the data:
+
+1.education. Average education of occupational
+incumbents, years, in 1971.
+
+2.income. Average income of incumbents, dollars, in
+1971.
+
+3.women. Percentage of incumbents who are women.
+
+4.prestige. Pineo-Porter prestige score for occupation,
+from a social survey conducted in the mid-1960s.
+
+5.census .Canadian Census occupational code.
+
+6.type. Type of occupation. A factor with levels (note:
+out of order): bc, Blue Collar; prof, Professional,
+Managerial, and Technical; wc, White Collar. 
+
+Summary of the data briefly is as follows:
+```{r}
+library("car")
+str(Prestige)
+```
+
+In the regression below we try to regress prestige points(independant variable) against education level attained, income and percentage of women in that field.
+
+```{r}
+lm1 <-lm( prestige ~ education + income + women, data= Prestige)
+summary(lm1)
+```
+As expected from the above summary, we can see that holding everyother factor constant as education increases the prestige also increases. Similarly holding all other factors contant as income increases prestige also increases. Although I expected to see some sort of a relationship between women and prestige points but this is not observed . No statistically significant results observed.
+
+The plots given below verify our interpretation of the model. 
+
+ Graphs outcome vs predictor variables holding the rest constant (also called partial-regression plots)
+
+```{r}
+avPlots(lm1)
+
+```
+
+Similar regression as above but using the log of education to scale the variable in comparison to other variables.
+```{r}
+lm2 <-lm( prestige ~ education + log(income) + type, data= Prestige)
+summary(lm2)
+```
+
+Adding interaction terms to the above analysis- 
+We add interaction terms to the model to see if our model has improved- 
+( We try to observe if there is an interaction between 1. Job type and education 2. Log of income and Job type)
+We can expect the interaction terms to improve our model
+
+```{r}
+lm3 <-lm( prestige ~ education*type + log(income)*type , data= Prestige)
+summary(lm3)
+
+```
+
+Similarly as above we use partial regression plots-
+Help identify the effect (or influence) of an observation on the regression coefficient of the predictor variable.
+
+```{r}
+avPlots(lm3)
+
+```
+
+From the anova analysis below - we observe that adding interaction terms to the model improves the model and this result is statistically significant. 
+```{r}
+anova(lm2,lm3)
+```
+
+Update on project-
+
+I am keen on exploring the intersection between behavioural sciences and policy making primarily focussed on human decision making and risk analysis. A broad area of work in this domain, which I hope to develop further, is "Analysis of risky behaviour in adolescents". 
+
+Questions to be answered:
+
+An underlying motivation behind this study is that adolescents are more prone to risky behaviour which could have long term repercussions on their lives in the long run. A few rudimentary questions that I have in mind are - 
+
+1.  What are the kinds of risks that adolescents take?
+
+2.	Can these risks be categorised in segments ranging from least impact to highest impact?
+
+3.	Are their differences in financial conditions which can impact or influence this behaviour?
+
+4.	Is there a causal relationship between cultural upbringing and risky behaviour? (A part of this can also include, if belonging to a particular race will have any discernible impact on the individual).
+
+5.	If the risks identified above differ between genders? (Exploring if there is a gender specific bias for some types of risky behaviour).
+
+6.	Subject to availability of data, if we can compare the risk taking behaviour between adolescents and adults.
+
+The above questions are tentative. I am still in the process of talking to professors and literature review to understand if any prior research has explored these areas and what their findings might be.
+
+Data-sets for this project:
+There are available data-sets which I could use for my research. One such set is the "The National Longitudinal study of Adolescent and Adult Health", aka add health dataset asks a lot of relevant questions that could constitute a quantitative study of the risk taking behaviour in adolescents.
+
+
+Another way this problem is being approached is through the DOSPERT scale. It is a psychometric tool used for measuring domain specific risk taking attitudes and behaviours. 
+
+
+Expected Results and impact: 
+The above research will be useful in understanding risky behaviour. This analysis can be further expanded as a predictive model perhaps, which can help curb or reduce the repercussions of such behaviour. 
+
