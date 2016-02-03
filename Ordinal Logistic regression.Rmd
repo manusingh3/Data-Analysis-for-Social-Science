@@ -1,0 +1,76 @@
+---
+title: "Ordinal Logistic Regression"
+output: pdf_document
+---
+# Ordinal Logistic Regression
+
+
+For the purpose of this assignment I have chosen to work with data from the world values survey. I am trying to determine the probability of an individual feeling unsafe in the united states. As predictor variables I have considered factors such as 
+1. Has the individual ever been attacked or been a victim of crime in the past one year . the responses have been recoded as 1- Yes and 0- No.
+2. 
+The next factor we is has the family of the respondent ever been attacked in the past year. the variable are again recoded as - 1- Yes and 0- No
+
+3.The third predictor variable we use for the purpose of this study is - Does the respondent carry a weapon on him ( knives, guns etc) The variables are recoded to correspond to 1- Yes and 0 - No
+
+The unsafe is the dependent variable and it has four levels- 
+1# Often felt unsafe 
+2# Sometimes felt unsafe
+3# Rarely felt unsafe
+4# Never felt unsafe.
+
+```{r warning=FALSE, error=FALSE, message=FALSE}
+library(plm)
+library(QMSS)
+```
+
+Some basic preprocessing steps and recoding of the variables
+```{r}
+u=subset(WV6_Data_v_2015_04_18, V2==840)
+u$family <- ifelse((u$V180==1),1,0)
+u$weapon <- ifelse((u$V189==1),1,0)
+u$victim <- ifelse((u$V179==1),1,0)
+a$unsafe[a$unsafe==-2 | a$unsafe==-1] <- NA
+
+```
+
+```{r warning=FALSE, error=FALSE, message=FALSE}
+ordlogit  <- vglm(unsafe ~ victim + family+ weapon, data= a, family=propodds)
+summary(ordlogit)
+```
+
+The interpretation of the model is that if someone goes from 0- never been a victim to 1 been a victim the logit decreases by 1.1815, moving towards a lower category of unsafe as opposed to a higher category net of all other factors. (Remember 1- very unsafe and 4 is very safe).
+This finding also makes intuitive sense because if a person has been a victim of a crime they are less likely to feel safe in their neighbourhood. The logit is also moving in the direction of lower safety in line with per expectations
+
+The interpretation for family is also similar. In moving from 0- family never attacked to 1- family has been attacked . The logit decreases (in the direction of un-safety). Their logit decreases by 0.588 that they will be in a lower category as opposed to a higher category net of all other factors. 
+
+The individuals who feel unsafe are more likely to carry a weapon .Our finding are in the direction of expectation. As an individual moves from 0- not carrying a weapon to 1- carrying a weapon - their logit decreases by 0.599 that they will belong to a lower category as opposed to a higher category. Net of all other factors.
+
+```{r}
+exp(coef(summary(ordlogit)))
+
+```
+The above are the calculations for the odds ratio. 
+
+The interpretation is similar to that above logically. But if an individual goes from not being a victim( 0) to being a victim - 1 the odds decrease by 69.3 percent that they will be in higher category of safety as opposed to  lower category net of all other factors. Similarly for family - if the family goes from not being attacked( 0) to being a attacked - 1 the odds decrease by 45.5 percent that they will be in higher category of safety as opposed to  lower category net of all other factors.
+
+
+We predict the probabilities for some of the cases above:
+
+```{r}
+predict(ordlogit, type = "response", newdata = data.frame(victim = 0, family =0, weapon = 0 ))
+```
+
+In the first case we take a respondent who has never been a victim, whose family also hasn't been attacked and does not carry a weapon. The probability that such an individual feel very unsafe is 0.94 % and very safe is 76.13 %.
+
+
+We try and compare these probabilities to another individual who has been attacked , whose family has been attacked and feels the need to carry a weapon. The probabilities for such an individual are :
+```{r}
+predict(ordlogit, type = "response", newdata = data.frame(victim = 1, family =1, weapon = 1 ))
+```
+
+For the second individual we observe the probability of belonging to the first category of very unsafe is 9.2 % which is almost ten times as large as the previous probability. The probability of such an individual feeling very safe is also much lower at 22.97 % 
+
+The point of using ordinal logistic regression over OLS we assume that the distance between the categories is the same. But in real life the distance between often unsafe and sometimes unsafe may not always be the same as the distance between Sometimes unsafe and rarely unsafe. By using ordinal logistic regression we have not made that assumption.
+
+
+
