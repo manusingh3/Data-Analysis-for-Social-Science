@@ -1,0 +1,200 @@
+
+ 
+
+d=read.csv(file.choose())  ## choose the GSS.2006 file ##
+
+ 
+
+## the link to the electronic codebook is here:  http://www.thearda.com/Archive/Files/Codebooks/GSS2006_CB.asp ##
+
+ 
+
+1. Use the table command or summary command, to tabulate one variable; and explain your results. (See examples right below.)
+
+ 
+
+table(d$spwrksta)
+
+summary(d$spwrksta)
+
+ 
+
+-- or --
+
+ 
+
+tab.sp = table(d$spwrksta) ## if you want not frequencies, but proportions, first make the variable into a 1x1 table ##
+
+prop.table(tab.sp) ## then display that variable as a 1x1 table ##
+
+ 
+
+2. Find the mean (use the mean command), standard deviation (use the sd command), maximum (use the max command), and minimum (use the min command) for one variable; and explain your results.  (See examples right below.)
+
+ 
+
+mean(d$wordsum, na.rm=T) ## the na.rm=T is necessary, otherwise, if you have any missing values, you will not get a numeric answer ##
+
+sd(d$wordsum, na.rm=T)
+
+max(d$wordsum, na.rm=T)
+
+min(d$wordsum, na.rm=T)
+
+ 
+
+3. Using either the plyr or doBy commands, compare the means and standard deviations for one variable, for at least two sub-groups; and explain your results.  (See examples right below.)
+
+ 
+
+install.packages("plyr")
+
+library(plyr) 
+
+ddply(d, "region",  summarise, Mean = mean(age, na.rm = T), SD = sd(age, na.rm = T))
+
+ 
+
+-or-
+
+ 
+
+install.packages("doBy")
+
+library(doBy)
+
+summaryBy(educ~race, data=d, FUN=c(mean, sd), na.rm=T)
+
+ 
+
+4. Using the gmodels or another command, cross-tabulate two categorical or ordinal variables (getting proportions); and explain your results.  (See examples right below.)
+
+ 
+
+install.packages("gmodels")
+
+library(gmodels)
+
+CrossTable(d$happy, d$health, prop.r=F, prop.c=T, prop.t=F, prop.chisq=F, format="SPSS")  ## I have turned off some additional information that would be reported otherwise ##
+
+ 
+
+------- Additional Information on Installing R on your Computer ------
+
+ 
+
+If you need to install R on your computer, here is where to go:
+
+ 
+
+http://cran.r-project.org/
+
+ 
+
+Just choose your operating system, download the latest version and follow the download instructions.  That is it.  If you have problems, we can talk about them in class or lab.
+
+ 
+
+--- Other links I promised you: -----
+
+ 
+
+All of the R code for this course (Thanks Eurry Kim):  https://github.com/ek2758/QMSS-R-Code/tree/master/G4013
+
+The World Values Survey site for online analysis: http://www.wvsevsdb.com/wvs/WVSAnalize.jsp?Idioma=I
+
+
+
+------ R lab #2 ----
+ 
+------
+ 
+
+1. Recode 1 *sort of* continuous variable into categories.  Tell me what you did and explain the variable(s).
+ 
+
+The simplest way to make a dummy variable:
+
+??d$hi.attend = ifelse((d$attend>4), 1, 0) ## binary recode ##
+hxa = table(d$hi.attend, d$attend) ## check the recoding ##
+prop.table(hxa) ## continue checking ##
+ 
+
+Making a dummy variable of categories, not numbers:
+
+d$mar.rec <- ifelse(d$marital ==1, c("married"), c("not married")) ## binary recode into categories, not numbers ##
+mxm = table(d$mar.rec, d$marital) ## check the recoding ##
+prop.table(mxm) ## continue checking ##
+ 
+
+Breaking a variable into categories:
+
+?d$attend.cat = cut(d$attend, breaks = c(-1, 2, 5, 8), label=c("weak","moderate","strong")) ## create a number of categories ##
+cxa = table(d$attend.cat, d$attend) ## check the recoding ##
+prop.table(cxa) ## continue checking ##
+ 
+
+Coding multiple conditions:
+
+d$bothft = ifelse((d$wrkstat==1 & d$spwrksta==1), 1, 0) ## an example with multiple conditions at once ##
+ftxft=table(d$bothft, d$wrkstat, d$spwrksta)
+prop.table(ftxft)  
+ 
+?Another way to apply multiple labels:  
+
+d$oncemarried[d$marital==1 ] <- 0
+d$oncemarried[d$marital==2 ] <- 1
+d$oncemarried[d$marital==3 ] <- 1
+d$oncemarried[d$marital==4 ] <- 1
+d$oncemarried[d$marital==5 ] <- 0
+str(d$oncemarried)
+oxm=table(d$oncemarried, d$marital)
+prop.table(oxm)
+ 
+
+Another way to apply multiple categorical labels:
+
+d$econ.new[d$econsci==1] <- "very"
+d$econ.new[d$econsci==2] <- "some"
+d$econ.new[d$econsci==3] <- "little"
+d$econ.new[d$econsci==4] <- "none"
+d$econ.new[d$econsci==5] <- NA
+str(d$econ.new)
+exe=table(d$econsci.new, d$econsci)
+prop.table(exe)
+d$econ.newest = factor(d$econ.new,levels=c("none", "little", "some", "very"), ordered=TRUE)
+table(d$econsci)
+ 
+
+2. Recode 1 other variable and attach value labels.  Tell me what you did and explain the variable(s).
+ 
+
+Add labels to existing variables:
+?d$hi.attend.lab <- ordered(d$hi.attend, levels = c(0,1), labels = c("low", "high")) ## using the hi.attend variable from above ##
+ 
+
+Reverse code a variable and then add labels and make it ordered:
+
+d$rhappy = 4-d$happy ## to reverse code a variable, do this ... (highest category + 1) - orginal_variable ##
+d$rhappy.fact = as.factor(d$rhappy) ## make this new numeric variable into a factor ##
+d$lab.rhappy <- ordered(d$rhappy, levels = c(1,2,3), labels = c("unhappy", "so-so", "happy")) ## make that factor variable into an ORDERED factor, with value labels ##
+hxrh = table(d$lab.rhappy, d$rhappy)
+prop.table(hxrh)
+ 
+
+mean(d$happy, na.rm=T) ## the original variable, happy, was numeric, so we can get the mean ##
+mean(as.numeric(d$lab.rhappy), na.rm=T) ## the new variable, lab.rhappy, is an ordered factor -- and we need to tell R to treat it like a number, hence, the as.numeric) ##
+ 
+
+3. Use one (or both) of your recoded variables to do a cross-tabulation (like last week, with prop.table, doBy, or ddply). Explain your results.
+ 
+
+d$hi.attend = ifelse((d$attend>4), 1, 0) ## as before ##
+d$hi.thorough = ifelse((d$big5c1<2), 1, 0) 
+ 
+
+library(gmodels)
+CrossTable(d$hi.attend, d$hi.thorough, prop.r=F, prop.c=T, prop.t=F, prop.chisq=F, format="SPSS")  
+ 
+
+4. Tell me two theories/ideas you might want to test in this course. Do you have a dataset for these ideas/theories already? Do you have it in R-readable format already? What is your main independent variable? What is your main dependent variable?
