@@ -1,0 +1,82 @@
+---
+title: "Lab_report_6"
+output: pdf_document
+---
+# 
+
+
+In this report I use the panel data  from GSS to study if the opinion of people changes overtime about abortion.
+ 
+The data set has various parameters measuring this -including married women who dont want any more children, preggnencies that may have occoured because of rape and finally unmarried women who are pregnant and are choosing to not marry either.
+
+In this report I have selected to study the last variety - because that has the most divided opinion amongst all three.
+
+The variable considered in this report are:
+childs- the number of children women have had
+bigbang- If they believe in the bang - bang as the creation of the universe- to understand if there is a religious twist to their preferences
+age- age of the participant
+absingle- single pregnant women who are not looking to marry , should they be allowed to have a legal abortion. (Y/N)
+
+```{r warning=FALSE, error=FALSE, message=FALSE}
+library(plm)
+library(QMSS)
+```
+
+Initially creating the data-set 
+```{r}
+
+vars <- c("idnum","panelwave","absingle","childs","bigbang", "age", "year")
+pd.sub <- d[, vars]
+
+
+pd.sub$absingle = ifelse(pd.sub$absingle==2, 1, 0)
+
+
+
+pd.sub$year= ifelse(pd.sub$panelwave==3, 1, 0)
+```
+
+We carry out the first part of the analysis- 
+
+##### 1. Run a naive ("pooled") OLS regression on the panel data.  Tell we how you expect your Xs to affect your Y and why.  Apply clustered standard errors too.  Interpret your results.
+```{r}
+lm1 <- lm(absingle ~ childs + bigbang + age + as.factor(panelwave),  data = pd.sub)
+
+summary(lm1)
+
+
+clusterSE(fit = lm1, cluster.var = "idnum", data=pd.sub)
+```
+
+The interpretation of the model above is that individuals with more children are more likely to not be in favour of legal abortion. This is in line with our intuition. 
+
+Its understandable that if they don't support legal abortion they must have under similar circumstances perhaps had the baby. Note- To improve our understanding of this effect we could pull out married respondents from the list and rerun the model. The above results are highly statistically significant
+
+Additionally we also observe that those who feel that "Big-bang" was a false event could alternatively believe in creationism. Thus because of religious beliefs might not support abortion. This result is also statistically significant and in line with our expectations.
+
+Finally interpreting - "age" . My intuition was the older individuals might be a little more conservative and thus not in favour of abortion. But this regression seems to show the exact opposite. Older individuals are in fact more likely to support it. This result is also highly statistically significant.
+
+Cluster helps us compute clustered standard errors and  retest the coefficients for statistical significance. Here we observe that once clustered we observe the effects similar to those seen in the lm model.
+
+Running the plm model to understand if the beliefs of individuals change overtime-
+
+
+##### 2. Run a first differences regression on the same model in Question 1.  Interpret your results.  Do you draw a different conclusion than in Question 1?  Explain.
+
+
+
+```{r}
+plm1 <- plm(absingle ~ childs + bigbang+ age + year,  index = c("idnum", "panelwave"),  model = "fd", data = pd.sub)
+
+summary(plm1)
+
+clusterSE(fit = plm1, cluster.var = "idnum", data=pd.sub)
+```
+
+ In the above model we observe that as expected from the model above there is not much change in the option of people overtime.
+ 
+ The p values for all the cases which showed statistical significance above have very high p values now. This we cannot reject the null hypothesis and our conclusion is that there is little to no change in the opinion of people about the issue at hand. One possible explanation could be because the time frame considered for actually changing someone's opinion on a serious issue like this must be much longer, which is why we can't observe many effects.
+ 
+
+ 
+ I am working on the additional cases as guided by the professor and will submit alongside the additional extra lab reports as soon as I can.
