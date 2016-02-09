@@ -1,0 +1,146 @@
+---
+title: "Manu_project 1"
+output: html_document
+---
+
+```{r}
+library(xlsx)
+library(reshape)
+setwd("C:/Users/SONY/Desktop/Data Visualization")
+raw.data <- read.xlsx("Survey+Response.xlsx", sheetName = "Form Responses 1")
+data <- raw.data
+
+
+# drop empty columns
+data <- data[, colSums(is.na(data)) < nrow(data)]
+
+
+# Clean up variable names
+cleaned.names <- c('waitlist', 'program','tools','exp.R.manipulation',
+                   'gender','text.editor','exp.R.graphics','exp.R.advanced','exp.R.reproducible','exp.Matlab','exp.Github')
+names(data) <- cleaned.names
+
+
+```
+
+```{r}
+# Split tools column into multiple columns
+## Count the maximum number of commas per row in the tools column
+num.commas <- max(sapply(gregexpr(",", data$tools, fixed = TRUE), function(x) max(length(x)))) + 1
+## Split the tools column in separate columns
+tool.cols <- colsplit(data$tools,"[,]",names=sapply(1:num.commas, function(x) paste('tools', x, sep='')))
+tool.matrix <- matrix(0, nrow = nrow(tool.cols),20)
+tool.names <- c("Matlab", "R", "Github", "Excel", "SQL", "RStudio", "ggplot2", "shell", "C", "Python", "LaTeX", "reg_exp", "Sweave", "XML", "Web", "dropbox", "gdocs","Stata", "SPSS", "lattice")
+colnames(tool.matrix) = tool.names
+tool.matrix <- as.data.frame(tool.matrix)
+
+
+
+```
+
+```{r}
+
+for (i in 1:ncol(tool.cols) ) {
+  for (tool.name in tool.names) {
+    tool.matrix[which(tool.cols[i] == tool.name), tool.name] <- 1
+  }
+}
+
+
+```
+
+```{r}
+data <- cbind(data, tool.matrix)
+data <- subset(data, select=-c(tools))
+
+
+
+```
+
+```{r}
+# Clean up inconsistent program values
+levels(data$program)
+sort(table(data$program))
+levels(data$program)[levels(data$program)=="Ms in ds"] <- "IDSE (master)"
+levels(data$program)[levels(data$program)=="MSDS"] <- "IDSE (master)"
+levels(data$program)[levels(data$program)=="PhD Biomedical Informatics"] <- "Ph.D."
+
+
+# Clean up text editor values
+levels(data$text.editor)
+sort(table(data$text.editor))
+
+levels(data$text.editor)[levels(data$text.editor)=="textwrangler"] <- "TextWrangler"
+levels(data$text.editor)[levels(data$text.editor)=="Text Wrangler"] <- "TextWrangler"
+levels(data$text.editor)[levels(data$text.editor)=="textWrangler"] <- "TextWrangler"
+
+levels(data$text.editor)[levels(data$text.editor)=="Sublime"] <- "Sublime Text"
+levels(data$text.editor)[levels(data$text.editor)=="Sublime Text 2"] <- "Sublime Text"
+levels(data$text.editor)[levels(data$text.editor)=="sublime"] <- "Sublime Text"
+levels(data$text.editor)[levels(data$text.editor)=="Sublime Text!"] <- "Sublime Text"
+levels(data$text.editor)[levels(data$text.editor)=="sublime text 2"] <- "Sublime Text"
+levels(data$text.editor)[levels(data$text.editor)=="Sublime 2"] <- "Sublime Text"
+levels(data$text.editor)[levels(data$text.editor)=="sublime text"] <- "Sublime Text"
+
+
+
+```
+
+```{r}
+
+# Assign level ordering to experience variables
+experience.cols <- names(data)[grepl("^exp.", names(data))]
+for (exp.col in experience.cols) {
+  data[, exp.col] <- factor(data[, exp.col], levels=levels(data[, exp.col])[c(4, 1, 2, 3)], ordered=TRUE)
+}
+
+
+```
+
+
+```{r}
+library(ggplot2)
+library(cowplot)
+
+# skills plot vs program of the student
+
+#comp.R.exp <- data[,2:10]
+
+```
+
+```{r}
+comp.R.exp <- data[,2:10]
+
+```
+
+```{r}
+g1 <- ggplot( comp.R.exp, aes(exp.R.manipulation, fill= program))+geom_bar()+theme(legend.position= "none",text=element_text(size=10),axis.text.x= element_text(size=10))
+
+g2 <- ggplot( comp.R.exp, aes(exp.R.graphics, fill= program))+geom_bar()+theme(legend.position= "none",text=element_text(size=10),axis.text.x= element_text(size=10))
+
+g3 <- ggplot( comp.R.exp, aes(exp.R.advanced, fill= program))+geom_bar()+theme(legend.position= "none",text= element_text(size=10),axis.text.x= element_text(size=10))
+
+g4 <- ggplot( comp.R.exp, aes(exp.R.reproducible, fill= program))+geom_bar()+theme(legend.position= "none",text=element_text(size=10),axis.text.x= element_text(size=10))
+
+g5 <- ggplot( comp.R.exp, aes(exp.Matlab, fill= program))+geom_bar()+theme(legend.position= "none",text=element_text(size=10),axis.text.x= element_text(size=10))
+
+g6 <- ggplot( comp.R.exp, aes(exp.Github, fill= program))+geom_bar()+theme(text=element_text(size=10),axis.text.x= element_text(size=10))
+
+
+require(cowplot)
+plot_grid(g1,g2,g3,g4,g5,g6,labels=c("Manipulation","Graphics","Advanced R","Markdown","Matlab","Github"),label_size=10, ncol=2,nrow=3)
+
+```
+
+```{r}
+g7 <- ggplot( data, aes(exp.R.manipulation, fill= gender))+geom_density(alpha=0.5, lwd=0.8, adjust=0.5)+theme(text=element_text(size=10),axis.text.x= element_text(size=7))
+g8 <- ggplot( data, aes(exp.R.advanced, fill= gender))+geom_density(alpha=0.5, lwd=0.8, adjust=0.5)+theme(text=element_text(size=10),axis.text.x= element_text(size=7))
+g9 <- ggplot( data, aes(exp.Matlab, fill= gender))+geom_density(alpha=0.5, lwd=0.8, adjust=0.5)+theme(text=element_text(size=10),axis.text.x= element_text(size=7))
+g10 <- ggplot( data, aes(exp.Github, fill= gender))+geom_density(alpha=0.5, lwd=0.8, adjust=0.5)+theme(text=element_text(size=10),axis.text.x= element_text(size=7))
+
+plot_grid(g7,g8,g9,g10,labels=c("Manipulation","Advanced R","Matlab","Github"),label_size=10)
+
+
+```
+
+
