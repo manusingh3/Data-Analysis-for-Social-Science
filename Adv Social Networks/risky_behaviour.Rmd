@@ -28,8 +28,8 @@ G1 G2 and G3 are the three friendship graphs at three points in time.
 ```{r}
 library(igraph)
 
-load("C:/Users/ms52/AppData/Local/Temp/Temp1_Glasgow_data.zip/Glasgow-friendship.RData")
-
+load("C:/Users/ms52/Desktop/Adv Social Networks/DataSets/Glasgow_data/Glasgow-demographic.RData")
+load("C:/Users/ms52/Desktop/Adv Social Networks/DataSets/Glasgow_data/Glasgow-friendship.RData")
 # try and viz the friendship networks - 
 
 friendship.1 = ifelse( friendship.1 == 10, 0, friendship.1)
@@ -72,59 +72,59 @@ plot(g1,
 
  g1 <- graph_from_adjacency_matrix(friendship.1)
  summary(g1)
-alcohol = as.data.frame(alcohol)
-alcohol$id = rownames(alcohol)
-tobacco = as.data.frame(tobacco)
-tobacco$id = rownames(tobacco)
-cannabis = as.data.frame(cannabis)
-cannabis$id = rownames(cannabis)
+# alcohol = as.data.frame(alcohol)
+# alcohol$id = rownames(alcohol)
+# tobacco = as.data.frame(tobacco)
+# tobacco$id = rownames(tobacco)
+# cannabis = as.data.frame(cannabis)
+# cannabis$id = rownames(cannabis)
 age = as.data.frame(age)
 age$id = rownames(age)
 sex.F = as.data.frame(sex.F)
 sex.F$id = rownames(sex.F)
-dist.school = as.data.frame(dist.school)
-dist.school$id = rownames(dist.school)
-distance.1 = as.data.frame(distance.1)
-distance.1$id = rownames(distance.1)
-leisure1 = as.data.frame(leisure1)
-leisure1$id = rownames(leisure1)
-music1 = as.data.frame(music1)
-music1$id = rownames(music1)
-familysmoking = as.data.frame(familysmoking)
-familysmoking$id = rownames(familysmoking)
-romantic = as.data.frame(romantic)
-romantic$id = rownames(romantic)
-money = as.data.frame(money)
-money$id = rownames(money)
-
-other = Reduce(function(x, y) merge(x, y, all=TRUE), list(leisure1,music1 , familysmoking))
-
-
-# alcohol.1 = alcohol[,c("t1", "id")]
-# colnames(alcohol.1) = c("alcohol", "id")
+# dist.school = as.data.frame(dist.school)
+# dist.school$id = rownames(dist.school)
+# distance.1 = as.data.frame(distance.1)
+# distance.1$id = rownames(distance.1)
+# leisure1 = as.data.frame(leisure1)
+# leisure1$id = rownames(leisure1)
+# music1 = as.data.frame(music1)
+# music1$id = rownames(music1)
+# familysmoking = as.data.frame(familysmoking)
+# familysmoking$id = rownames(familysmoking)
+# romantic = as.data.frame(romantic)
+# romantic$id = rownames(romantic)
+# money = as.data.frame(money)
+# money$id = rownames(money)
 # 
-# vertex_attr(g1, index=alcohol$id) <- alcohol.1
-# V(net)$Sex=as.character(a$Sex[match(V(net)$name,a$Bird.ID)])
-V(g1)$alcohol=as.numeric(alcohol$t1[match(V(g1)$name,alcohol$id)])
-V(g1)$tobacco=as.numeric(tobacco$t1[match(V(g1)$name,tobacco$id)])
-V(g1)$cannabis=as.numeric(cannabis$t1[match(V(g1)$name,cannabis$id)])
+# other = Reduce(function(x, y) merge(x, y, all=TRUE), list(leisure1,music1 , familysmoking))
+# 
+# 
+# # alcohol.1 = alcohol[,c("t1", "id")]
+# # colnames(alcohol.1) = c("alcohol", "id")
+# # 
+# # vertex_attr(g1, index=alcohol$id) <- alcohol.1
+# # V(net)$Sex=as.character(a$Sex[match(V(net)$name,a$Bird.ID)])
+# V(g1)$alcohol=as.numeric(alcohol$t1[match(V(g1)$name,alcohol$id)])
+# V(g1)$tobacco=as.numeric(tobacco$t1[match(V(g1)$name,tobacco$id)])
+# V(g1)$cannabis=as.numeric(cannabis$t1[match(V(g1)$name,cannabis$id)])
 
 V(g1)$age=as.numeric(age$age[match(V(g1)$name,age$id)])
 V(g1)$sex=as.numeric(sex.F$sex.F[match(V(g1)$name,sex.F$id)])
 
-V(g1)$dist.school=as.numeric(dist.school$t1[match(V(g1)$name,dist.school$id)])
-V(g1)$distance.1=as.numeric(distance.1$t1[match(V(g1)$name,distance.1$id)])
-V(g1)$smoking.at.home=as.numeric(cannabis$t1[match(V(g1)$name,cannabis$id)])
-V(g1)$cannabis=as.numeric(cannabis$t1[match(V(g1)$name,cannabis$id)])
-V(g1)$cannabis=as.numeric(cannabis$t1[match(V(g1)$name,cannabis$id)])
-V(g1)$cannabis=as.numeric(cannabis$t1[match(V(g1)$name,cannabis$id)])
-V(g1)$cannabis=as.numeric(cannabis$t1[match(V(g1)$name,cannabis$id)])
-V(g1)$cannabis=as.numeric(cannabis$t1[match(V(g1)$name,cannabis$id)])
-V(g1)$cannabis=as.numeric(cannabis$t1[match(V(g1)$name,cannabis$id)])
-V(g1)$cannabis=as.numeric(cannabis$t1[match(V(g1)$name,cannabis$id)])
-
-
-g1 = set_vertex_attr(g1, name, index = V(graph), value)
+# V(g1)$dist.school=as.numeric(dist.school$t1[match(V(g1)$name,dist.school$id)])
+# V(g1)$distance.1=as.numeric(distance.1$t1[match(V(g1)$name,distance.1$id)])
+# V(g1)$smoking.at.home=as.numeric(cannabis$t1[match(V(g1)$name,cannabis$id)])
+# V(g1)$cannabis=as.numeric(cannabis$t1[match(V(g1)$name,cannabis$id)])
+# V(g1)$cannabis=as.numeric(cannabis$t1[match(V(g1)$name,cannabis$id)])
+# V(g1)$cannabis=as.numeric(cannabis$t1[match(V(g1)$name,cannabis$id)])
+# V(g1)$cannabis=as.numeric(cannabis$t1[match(V(g1)$name,cannabis$id)])
+# V(g1)$cannabis=as.numeric(cannabis$t1[match(V(g1)$name,cannabis$id)])
+# V(g1)$cannabis=as.numeric(cannabis$t1[match(V(g1)$name,cannabis$id)])
+# V(g1)$cannabis=as.numeric(cannabis$t1[match(V(g1)$name,cannabis$id)])
+# 
+# 
+# g1 = set_vertex_attr(g1, name, index = V(graph), value)
 ```
 
 
@@ -179,6 +179,10 @@ sp_in <- as.data.frame(  shortest.paths(g1) )
 colnames(sp_in) = "sp_in"
 ggplot(data = sp_in, aes(sp_in))+geom_bar()
 
+sp_in = do.call(data.frame,lapply(sp_in, function(x) replace(x, is.infinite(x),0)))
+
+avg_path_len = sum(sp_in)/(160*160)
+clust_coeff = transitivity(g1)
 ```
  
 ## Generating random graph
@@ -190,11 +194,7 @@ ggplot(data = sp_in, aes(sp_in))+geom_bar()
 library(ergm)
 library(intergraph)
 
-#set up weighting vectors for clustering and hierarchy
-# clust.mask <- rep(0,16)
-# clust.mask[c(1,3,16)] <- 1
-# hier.mask <- rep(1,16)
-# hier.mask[c(6:8,10:11)]  <- 0
+
 
 #compute triad count and triad proportion for a given weighting vector
 calc_clustering <- function(my.graph){
@@ -224,6 +224,9 @@ cluster <- function(this.graph){
   cluster = as.data.frame(t(clust))
 }
 
+```
+
+```{r}
 
 ######similar calculations for shortest path length
 
@@ -238,35 +241,61 @@ calc_path <- function(my.graph){
   # clust <- sum(tc.graph)
   # clust.norm <- clust/sum(tc.graph)
   #clust = transitivity(r.igraph, isolates = "zero" )
-  path = shortest.paths(r.igraph)
-  return(c(clust))
+  path = mean(shortest.paths(r.igraph))
+  return(c(path))
 }
 
 #build 100 random graphs and compute their clustering and hierarchy measurements to create an empirical null distribution
 path <- function(this.graph){
-  clust <- matrix(rep(0,100), nrow=1) 
+  path <- matrix(rep(0,100), nrow=1) 
   #path <- matrix(rep(0,200),nrow=2)
   for(i in c(1:100)){
-    clust[,i] <- calc_clustering(this.graph)
+    path[,i] <- calc_path(this.graph)
     #path[,i] <- mask.stat(this.graph)
   }
   
-  cluster = as.data.frame(t(clust))
+  path = as.data.frame(t(path))
 }
 
+```
 
+```{r}
 #compute empirical distributions for each network
 rand_clus_dist <- cluster(g1)
-
+rand_path_dist <- path(g1)
 
 
 ```
 
 
 
+Vizualizing the results-
+
+## Avg path length is comparable to random path length
+
+```{r}
 
 
+ggplot(rand_path_dist, aes(x=V1)) + 
+    geom_histogram(aes(y=..density..),binwidth = 0.01,     
+                   colour="black", fill="white") +
+    geom_density(alpha=.4, fill="blue")
 
+ggplot(rand_clus_dist, aes(x=V1)) + 
+    geom_histogram(aes(y=..density..),binwidth = 0.003,     
+                   colour="black", fill="white") +
+    geom_density(alpha=.4, fill = "red")
+
+```
+
+With only 100 trails we dont have a perfectly normal distribution but it almost seems to work. (with more and more trails the distribution of these values will approch a normal distribution)
+
+Comparing results we have 
+
+| Data                   | Clustering Coefficient   | Avg Path Length |
+|------------------------|--------------------------|-----------------|
+| School Social Network  | 0.3579                   | 3.7117          |
+| Simulated random Graph | 0.0887                   | 2.1543          |
 
 
 
