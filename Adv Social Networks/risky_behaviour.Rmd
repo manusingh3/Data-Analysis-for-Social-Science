@@ -253,7 +253,7 @@ path <- function(this.graph){
     path[,i] <- calc_path(this.graph)
     #path[,i] <- mask.stat(this.graph)
   }
-  
+ 
   path = as.data.frame(t(path))
 }
 
