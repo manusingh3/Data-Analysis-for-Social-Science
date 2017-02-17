@@ -56,6 +56,19 @@ plot(g1, edge.arrow.size=.5, vertex.color="gold", vertex.size=15,
      vertex.frame.color="gray", vertex.label.color="black", 
 
      vertex.label.cex=0.5, vertex.label.dist=0, edge.curved=0.2) 
+layout <- layout_nicely(g1, dim = 3)
+
+sex_color = get.vertex.attribute(g1,"sex")
+sex_color[sex_color == 2] = "red"
+sex_color[sex_color == 1] = "blue"
+
+plot(g1, 
+     layout=layout, 
+     vertex.color=sex_color, 
+     vertex.label=NA, 
+     edge.arrow.size=.5,
+     main='School Network by sex of student')
+
 
  g1 <- graph_from_adjacency_matrix(friendship.1)
  summary(g1)
@@ -95,8 +108,10 @@ other = Reduce(function(x, y) merge(x, y, all=TRUE), list(leisure1,music1 , fami
 V(g1)$alcohol=as.numeric(alcohol$t1[match(V(g1)$name,alcohol$id)])
 V(g1)$tobacco=as.numeric(tobacco$t1[match(V(g1)$name,tobacco$id)])
 V(g1)$cannabis=as.numeric(cannabis$t1[match(V(g1)$name,cannabis$id)])
-V(g1)$age=as.numeric(age$t1[match(V(g1)$name,age$id)])
-V(g1)$sex=as.numeric(sex.F$t1[match(V(g1)$name,sex.F$id)])
+
+V(g1)$age=as.numeric(age$age[match(V(g1)$name,age$id)])
+V(g1)$sex=as.numeric(sex.F$sex.F[match(V(g1)$name,sex.F$id)])
+
 V(g1)$dist.school=as.numeric(dist.school$t1[match(V(g1)$name,dist.school$id)])
 V(g1)$distance.1=as.numeric(distance.1$t1[match(V(g1)$name,distance.1$id)])
 V(g1)$smoking.at.home=as.numeric(cannabis$t1[match(V(g1)$name,cannabis$id)])
@@ -113,6 +128,139 @@ g1 = set_vertex_attr(g1, name, index = V(graph), value)
 ```
 
 
+At this stage we have a simplified version of the friendship graph at time 1 with some basic attributes attached to it such as age, sex, alcohol, smoking etc.
+
+In line with what we have learnt in class we will try and evalute if those rules hold true in the case of this particular graph.The first hypothesis that I try out is checking if this graph is a case of a small world network.
+
+
+## Small World Graph 
+
+The basic definition of a small worlsd graph are the following - 
+
+1. Characteristic path length - The number of edges in the shortest path averaged over all the paths.
+2. Clustering Coefficient - probability that two friends of a ransomly chosen person are friends.
+
+If the graph is a small world (as i expect) what I should observe according to theory is that 
+ 1. Actual path length ~ Random path length
+ 2. Actual clustering coeff >> Random clustering coeff
+ 
+ First some exploratory analysis-
+ The graph disply structure- sorted by gender
+ 
+ 
+## Node level statistics
+
+### Computing the indegree and out degree of each node
+```{r}
+
+deg_in <- as.data.frame(  degree(g1, mode="in") )
+colnames(deg_in) = "deg_in"
+deg_out <- as.data.frame(degree(g1, mode="out") )
+colnames(deg_out) = "deg_out"
+library(ggplot2)
+
+ggplot(data = deg_in, aes(deg_in))+geom_bar()
+ggplot(data = deg_out, aes(deg_out))+geom_bar()
+```
+  There is a strong hint here that there is a large variability in the indegee and out degree of students. A few students are very popular while a majority of studnts have about a median of 3 friends. When we observe outdegree we notice much lesser variability which caps of at 6. it could be because the experimenters might have asked the studnets to name only upto 6 students as their friends. 
+ 
+ 
+### Computing the shortest path length of each node
+
+We could calculate seperate shortest path lengths using only in or out metrics. I have chosen to calcualte the average of the two 
+```{r}
+# sp_in <- as.data.frame(  shortest.paths(g1, mode="in") )
+# colnames(sp_in) = "sp_in"
+# 
+# ggplot(data = sp_in, aes(sp_in))+geom_bar()
+
+
+sp_in <- as.data.frame(  shortest.paths(g1) )
+colnames(sp_in) = "sp_in"
+ggplot(data = sp_in, aes(sp_in))+geom_bar()
+
+```
+ 
+## Generating random graph
+
+#R code for generating random graphs:
+#requires packages ergm, intergraph
+
+```{r} 
+library(ergm)
+library(intergraph)
+
+#set up weighting vectors for clustering and hierarchy
+# clust.mask <- rep(0,16)
+# clust.mask[c(1,3,16)] <- 1
+# hier.mask <- rep(1,16)
+# hier.mask[c(6:8,10:11)]  <- 0
+
+#compute triad count and triad proportion for a given weighting vector
+calc_clustering <- function(my.graph){
+  n.nodes <- vcount(my.graph)
+  n.edges <- ecount(my.graph)
+  #set probability of edge formation in random graph to proportion of possible edges present in original
+  p.edge <- n.edges/(n.nodes*(n.nodes +1)/2)
+  r.graph <- as.network(n.nodes, density = p.edge)
+  r.igraph <- asIgraph(r.graph)
+  # tc.graph <- triad.census(r.igraph)
+  # clust <- sum(tc.graph)
+  # clust.norm <- clust/sum(tc.graph)
+  clust = transitivity(r.igraph, isolates = "zero" )
+  #path = shortest.paths(r.igraph)
+  return(c(clust))
+}
+
+#build 100 random graphs and compute their clustering and hierarchy measurements to create an empirical null distribution
+cluster <- function(this.graph){
+  clust <- matrix(rep(0,100), nrow=1) 
+  #path <- matrix(rep(0,200),nrow=2)
+  for(i in c(1:100)){
+    clust[,i] <- calc_clustering(this.graph)
+    #path[,i] <- mask.stat(this.graph)
+  }
+  
+  cluster = as.data.frame(t(clust))
+}
+
+
+######similar calculations for shortest path length
+
+calc_path <- function(my.graph){
+  n.nodes <- vcount(my.graph)
+  n.edges <- ecount(my.graph)
+  #set probability of edge formation in random graph to proportion of possible edges present in original
+  p.edge <- n.edges/(n.nodes*(n.nodes +1)/2)
+  r.graph <- as.network(n.nodes, density = p.edge)
+  r.igraph <- asIgraph(r.graph)
+  # tc.graph <- triad.census(r.igraph)
+  # clust <- sum(tc.graph)
+  # clust.norm <- clust/sum(tc.graph)
+  #clust = transitivity(r.igraph, isolates = "zero" )
+  path = shortest.paths(r.igraph)
+  return(c(clust))
+}
+
+#build 100 random graphs and compute their clustering and hierarchy measurements to create an empirical null distribution
+path <- function(this.graph){
+  clust <- matrix(rep(0,100), nrow=1) 
+  #path <- matrix(rep(0,200),nrow=2)
+  for(i in c(1:100)){
+    clust[,i] <- calc_clustering(this.graph)
+    #path[,i] <- mask.stat(this.graph)
+  }
+  
+  cluster = as.data.frame(t(clust))
+}
+
+
+#compute empirical distributions for each network
+rand_clus_dist <- cluster(g1)
+
+
+
+```
 
 
 
@@ -120,5 +268,81 @@ g1 = set_vertex_attr(g1, name, index = V(graph), value)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+ 
+ How to calculate random path length and random clustering coefficient ? Generating a ER model to draw comparisons . In this case I will use the same degree distributions??? 
+ 
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##Future work and Improvement
+
+1. In line with the paper (Configuring Random Graph Models with Fixed Degree Sequences) choose a better null model which might fit the scenario better. I chose ER graphs as my null model due to my familirity with dealing with them. May not be the best choice theortically.
+
+2. Will the results change if I use a null model with same degree distribution? How robust are the results to different null models. 
 
 
