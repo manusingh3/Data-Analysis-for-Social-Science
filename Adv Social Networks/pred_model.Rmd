@@ -1,0 +1,134 @@
+---
+title: "SNA_pred"
+author: "Manu"
+date: "April 19, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(igraph)
+
+load("C:/Users/ms52/Desktop/Adv Social Networks/DataSets/Glasgow_data/Glasgow-demographic.RData")
+load("C:/Users/ms52/Desktop/Adv Social Networks/DataSets/Glasgow_data/Glasgow-friendship.RData")
+# try and viz the friendship networks - 
+
+friendship.1 = ifelse( friendship.1 == 10, 0, friendship.1)
+#friendship.1 = ifelse( friendship.1 == 2, 1, friendship.1)
+g1 <- graph_from_adjacency_matrix(friendship.1)
+
+
+# friendship.2 = ifelse( friendship.2 == 10, 0, friendship.2)
+# friendship.2 = ifelse( friendship.2 == 2, 1, friendship.2)
+# g2 <- graph_from_adjacency_matrix(friendship.2)
+
+
+friendship.3 = ifelse( friendship.3 == 10, 0, friendship.3)
+#friendship.3 = ifelse( friendship.3 == 2, 1, friendship.3)
+g3 <- graph_from_adjacency_matrix(friendship.3)
+
+```
+Attach all the various attributes to the friendship graph-
+
+```{r}
+
+plot(g1, edge.arrow.size=.5, vertex.color="gold", vertex.size=15, 
+
+     vertex.frame.color="gray", vertex.label.color="black", 
+
+     vertex.label.cex=0.5, vertex.label.dist=0, edge.curved=0.2) 
+layout <- layout_nicely(g1, dim = 3)
+
+sex_color = get.vertex.attribute(g1,"sex")
+sex_color[sex_color == 2] = "red"
+sex_color[sex_color == 1] = "blue"
+
+plot(g1, 
+     layout=layout, 
+     vertex.color=sex_color, 
+     vertex.label=NA, 
+     edge.arrow.size=.5,
+     main='School Network by sex of student')
+
+
+ g1 <- graph_from_adjacency_matrix(friendship.1)
+ summary(g1)
+
+tobacco = as.data.frame(tobacco)
+tobacco$id = rownames(tobacco)
+
+fam = as.data.frame(familysmoking)
+fam$id = rownames(fam)
+
+age = as.data.frame(age)
+age$id = rownames(age)
+sex.F = as.data.frame(sex.F)
+sex.F$id = rownames(sex.F)
+
+
+V(g1)$age=as.numeric(age$age[match(V(g1)$name,age$id)])
+V(g1)$sex=as.numeric(sex.F$sex.F[match(V(g1)$name,sex.F$id)])
+V(g1)$smoke=as.numeric(tobacco$t1[match(V(g1)$name,tobacco$id)])
+V(g1)$fam.smoke=as.numeric(fam$smoking.at.home[match(V(g1)$name,fam$id)])
+# 
+# 
+#
+```
+
+created graph G1 and now similarly we will create graph G2 .
+
+This is a prelim model and I am only training on a handful of attributes present in the mater dataset. Namely - age, sex and family history of smoking. (alongside network information of course.)
+
+
+```{r}
+
+
+
+ g3 <- graph_from_adjacency_matrix(friendship.3)
+ summary(g3)
+
+V(g3)$age=as.numeric(age$age[match(V(g3)$name,age$id)])
+V(g3)$sex=as.numeric(sex.F$sex.F[match(V(g3)$name,sex.F$id)])
+V(g3)$smoke=as.numeric(tobacco$t1[match(V(g3)$name,tobacco$id)])
+V(g3)$fam.smoke=as.numeric(fam$smoking.at.home[match(V(g3)$name,fam$id)])
+
+
+```
+
+
+## both networks are ready- now to run a simple linear regression model.
+
+```{r}
+
+total = merge(age, sex.F, by = "id")
+total = merge(total, fam, by = "id")
+total = total[,-c(5,6)]
+total = merge(total, tobacco, by = "id")
+total = total[,-c(6,7)]
+
+total$smoking.at.home = ifelse(total$smoking.at.home ==2, 1, 0)
+total$sex.F = ifelse(total$sex.F ==1, 1, 0)
+
+
+head(total)
+
+str(total)
+```
+With the clean dataset now to make a linear regression model :
+
+```{r}
+
+lm1 = lm(t1~age+sex.F+smoking.at.home, data = total)
+
+summary(lm1)
+
+library(car) 
+
+pairs(age+sex.F+smoking.at.home~t1, data = total, 
+   main="Relationship between various elements")
+
+```
