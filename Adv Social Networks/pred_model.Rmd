@@ -117,18 +117,55 @@ total$sex.F = ifelse(total$sex.F ==1, 1, 0)
 head(total)
 
 str(total)
+
+total$sex.F = as.factor(total$sex.F)
+total$smoking.at.home = as.factor(total$smoking.at.home)
 ```
 With the clean dataset now to make a linear regression model :
 
+Objective here is to compare the performance of a linear model with that of a model which has additional network information. Because none of the factors are invariant in time in this smaller subset - (i only have sex, age and family smoking- which changes insignificantly over the span of the study). If I trained my model at one point of time and used it to predict in the future- I will get almost perfect predictions (the training and testing datasets are almost the same!!)
+
+So to avoid that issue I will partition the dataset into training and testing at time t1.
 ```{r}
 
-lm1 = lm(t1~age+sex.F+smoking.at.home, data = total)
+ lm1 = lm(t1~age+sex.F+smoking.at.home, data = total)
 
 summary(lm1)
 
-library(car) 
+library(car)
 
-pairs(age+sex.F+smoking.at.home~t1, data = total, 
+pairs(t1~age+sex.F+smoking.at.home, data = total,
    main="Relationship between various elements")
+
+avPlots(lm1)
+
+pred = total[,1:4]
+smoking = as.data.frame(predict(lm1,pred))
+
+head(smoking)
+library(caret)     
+library(mlbench)
+
+rmse <- function(error)
+{
+    sqrt(mean(error^2))
+}
+
+rmse(lm1$residuals)
+postResample(pred = smoking, obs = tobacco$t1 )
+#confusionMatrix(data = smoking$`predict(lm1, pred)`, reference = tobacco$t1, mode = "prec_recall")
+
+```
+
+Trying to model the same with network data
+```{r}
+
+n = as.data.frame(unlist(ego(g1,1, 1, mode = "all")))
+n$neigh = rownames(n)
+n= n[,-1]
+n
+total$weight = ifelse(total$id %in% n , 3,1)
+
+
 
 ```
