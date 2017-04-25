@@ -1,0 +1,407 @@
+---
+title: "FCC_test"
+author: "Manu Singh"
+date: "April 18, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+####Loading and cleaning and data viz
+
+```{r}
+
+
+d = read.csv("C:\\Users\\SONY\\Desktop\\Adv Soc Networks\\FCC_data\\background.csv")
+
+
+
+library(data.table)
+DT <- as.data.table(d)
+DT = DT[,which(unlist(lapply(DT, function(x)!all(is.na(x))))),with=F]
+
+
+Theta = 0.50
+Drop <- DT[, lapply(.SD, function (x) {sum(is.na(x))/length(x) > Theta} )]
+Cols.2.Drop <- names(Drop)[which(Drop==TRUE)]
+DT[, (Cols.2.Drop) := NULL]
+
+
+library(caret)
+
+df = nearZeroVar(DT,saveMetrics = TRUE)
+a = (df[df[,"zeroVar"] > 0, ])
+a
+a$cols = row.names(a)
+a = a[,5]
+head(df[df[,"zeroVar"] + df[,"nzv"] > 0, ])
+
+
+DT = DT[,(a):=NULL]
+dim(DT)
+
+write.csv(DT, file="cleaner.csv")
+```
+
+
+###operating with the cleaner dataset now -reduced from 13000 to 9197 cols- more to go-
+```{r}
+
+head(DT)
+d = read.csv("C:\\Users\\SONY\\Desktop\\Adv Soc Networks\\FCC_data\\cleaner.csv")
+d[d < 0] <- NA
+
+a =d[1:10,554:560]
+
+DT <- as.data.table(d)
+DT = DT[,which(unlist(lapply(DT, function(x)!all(is.na(x))))),with=F]
+
+
+Theta = 0.70
+Drop <- DT[, lapply(.SD, function (x) {sum(is.na(x))/length(x) > Theta} )]
+Cols.2.Drop <- names(Drop)[which(Drop==TRUE)]
+DT[, (Cols.2.Drop) := NULL]
+dim(DT)
+
+####after removing NA we are down to removing 70 percent nA values 4389 cols left
+
+library(caret)
+
+df = nearZeroVar(DT,saveMetrics = TRUE)
+a = (df[df[,"zeroVar"] > 0, ])
+a
+a$cols = row.names(a)
+a = a[,5]
+head(df[df[,"zeroVar"] + df[,"nzv"] > 0, ])
+
+
+DT = DT[,(a):=NULL]
+dim(DT)
+
+write.csv(DT, file ="cleaner2.csv")
+
+
+```
+
+###interim clean file now has 4242 rows and 4368 cols- may clean more if necessary. Now will try n explore the data
+
+```{r}
+
+d = read.csv("C:\\Users\\ms52\\Desktop\\ESOC Temp files\\FFC\\FFChallenge\\cleaner2.csv")
+d = d[,-(1:2)]
+
+#d = merge(y, d, by ="challengeID", all = TRUE)
+
+
+
+a =d[1:10,1:10]
+a
+library(data.table)
+#extreme pruning for this trial round- will work on this later. 994 cols
+#theta is percentage of na allowed
+DT <- as.data.table(d)
+DT = DT[,which(unlist(lapply(DT, function(x)!all(is.na(x))))),with=F]
+Theta = 0.25
+Drop <- DT[, lapply(.SD, function (x) {sum(is.na(x))/length(x) > Theta} )]
+Cols.2.Drop <- names(Drop)[which(Drop==TRUE)]
+DT[, (Cols.2.Drop) := NULL]
+dim(DT)
+
+
+d = as.data.frame(DT)
+#d = merge(y, d, by ="challengeID", all = TRUE)
+
+a =d[1:10,1:10]
+a
+
+
+
+summary(a)
+
+
+```
+
+
+####with the pruned dataset of 4242 rows and 998 cols we will train - 
+
+working with job- 
+```{r}
+y = read.csv("C:\\Users\\ms52\\Desktop\\ESOC Temp files\\FFC\\FFChallenge\\train.csv")
+head(y)
+d = merge(y, d, by ="challengeID", all = TRUE)
+
+jobtrain = subset(d, !(is.na(d$jobTraining)) )
+
+jobtrain = jobtrain[,-(2:6)]
+
+rownames(jobtrain) = jobtrain$challengeID
+jobtrain = jobtrain[,-1]
+
+
+a =jobtrain[1:10,1:10]
+a
+
+library(randomForest)
+
+set.seed(100)
+
+jobtrain = jobtrain[ , !names(jobtrain)%in%c("cf4fint","hv5_ppvtae","hv5_ppvtpr","hv5_wj9pr","hv5_wj9ae","hv5_wj10pr","hv5_wj10ae","hv5_dsae")]
+
+#training
+jobimp = rfImpute( jobTraining~., jobtrain )
+jobimp$jobTraining = as.factor(jobimp$jobTraining)
+jobrf <- randomForest(jobTraining ~ ., data=jobimp, importance=TRUE,
+proximity=TRUE,replace = TRUE )
+
+#predicting
+jobpred = subset(d, (is.na(d$jobTraining)) )
+jobpred = jobpred[,-(2:6)]
+rownames(jobpred) = jobpred$challengeID
+jobpred = jobpred[,-1]
+jobpred = jobpred[,-1]
+jobpred = jobpred[ , !names(jobpred)%in%c("cf4fint","hv5_ppvtae","hv5_ppvtpr","hv5_wj9pr","hv5_wj9ae","hv5_wj10pr","hv5_wj10ae","hv5_dsae")]
+library(VIM)
+library(DMwR)
+library(mice)
+#predimp = knnImputation(jobpred)
+
+test = predict(jobrf, imputed)
+
+a =jobtrain[1:10,1:10]
+a
+
+```
+
+
+```{r}
+
+#predimp = kNN(a ,k = 10)
+
+ library(missForest) 
+ library(doParallel) 
+
+ registerDoParallel(cores=8)
+
+  predimp = missForest(jobpred, maxiter = 10, ntree = 50, variablewise = FALSE,  
+  decreasing = FALSE, verbose = TRUE,  
+  mtry = 15, replace = TRUE,  
+  classwt = NULL, cutoff = NULL, strata = NULL,  
+  sampsize = NULL, nodesize = NULL, maxnodes = NULL,  
+  xtrue = NA, parallelize = c('forests'))
+
+imputed = predimp$ximp
+write.csv(imputed, file = "imputed.csv")
+
+library(rpart)
+jobtrain$jobTraining = as.factor(jobtrain$jobTraining)
+rpartjob = rpart(jobTraining~., data = jobtrain)
+
+test3 = predict(rpartjob, jobpred, type = "class")
+
+rpartjob2 = rpart(jobTraining~., data = jobimp)
+test5 = as.data.frame(  predict(rpartjob2, imputed, type = "class"))
+test5$challengeID = row.names(test5)
+colnames(test5) = c( "jobTraining", "challengeID")
+head(test5)
+jobtrain$challengeID = row.names(jobtrain)
+test5 = rbind( jobtrain$jobTraining, jobtrain$challengeID)
+write.csv(test5, file = "pred25apr.csv")
+
+a =d[1:10,1:10]
+a
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- lets try imputing data in main dataset which has about 990 cols -->
+<!-- ```{r} -->
+<!-- d = as.data.frame(DT) -->
+<!-- class <- as.data.frame(sapply(d, class)) -->
+<!-- colnames(class) = "class" -->
+<!-- subset(class, class =="factor") -->
+<!-- str(d$hv5_dsae) -->
+
+<!-- d = d[ , !names(d) %in% c("cf4fint","hv5_ppvtae","hv5_ppvtpr","hv5_wj9pr","hv5_wj9ae","hv5_wj10pr","hv5_wj10ae","hv5_dsae")] -->
+
+<!-- # columns to drop -----d = d[,!d$hv5_ppvtae] hv5_wj9pr (must clean and add it back later) hv5_wj10pr -->
+<!-- d1  = d[,1:200] -->
+<!-- d2  = d[,201:400] -->
+<!-- d3  = d[,401:600] -->
+<!-- d4  = d[,601:700] -->
+<!-- library(missForest) -->
+<!-- library(doParallel) -->
+
+<!-- registerDoParallel(cores=6) -->
+
+<!-- imp_d4 = missForest(d4, maxiter = 10, ntree = 50, variablewise = FALSE, -->
+<!-- decreasing = FALSE, verbose = TRUE, -->
+<!-- mtry = 15, replace = TRUE, -->
+<!-- classwt = NULL, cutoff = NULL, strata = NULL, -->
+<!-- sampsize = NULL, nodesize = NULL, maxnodes = NULL, -->
+<!-- xtrue = NA, parallelize = c('forests')) -->
+
+<!-- imp_d$OOBerror -->
+
+<!-- ``` -->
+
+
+
+
+
+
+
+
+
+<!-- #trying a simple random forest -job training -->
+
+<!-- ```{r} -->
+
+<!-- temp = y[,c(1,7)] -->
+<!-- job = merge(temp, d, all.x = TRUE) -->
+
+<!-- train = job[,2:989] -->
+<!-- a =train[1:10,1:10] -->
+<!-- a -->
+<!-- pred = d[-(job$challengeID),] -->
+<!-- pred =pred[,-1] -->
+
+<!-- a =pred[1:10,1:10] -->
+
+<!-- yjob = y$jobTraining -->
+<!-- a -->
+
+
+
+<!-- ``` -->
+
+
+<!-- impute missing data -->
+<!-- ```{r} -->
+
+<!-- library(mice) -->
+
+<!-- # temptrain <- mice(a,maxit=50,meth='pmm',seed=500) -->
+<!-- # summary(temptrain) -->
+
+<!-- train = as.matrix(train) -->
+<!-- require(missForest) -->
+<!-- out.m <- missForest(train) -->
+<!-- # imputed  -->
+<!-- imp.rM1 <- out.m$ximp -->
+
+
+<!-- ``` -->
+
+
+<!-- ####need to work on imputation rpart for now -->
+
+<!-- ```{r} -->
+<!-- require(rpart) -->
+<!-- train = as.data.frame(train) -->
+<!-- train = cbind(yjob,train) -->
+<!-- head(train) -->
+
+<!-- str(train) -->
+
+<!-- rpart1 = rpart(jobTraining ~ ., data = train) -->
+<!-- summary(rpart1) -->
+
+<!-- predicted= predict(rpart1,pred) -->
+
+<!-- ``` -->
