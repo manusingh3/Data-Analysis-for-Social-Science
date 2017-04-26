@@ -131,23 +131,15 @@ working with job-
 y = read.csv("C:\\Users\\ms52\\Desktop\\ESOC Temp files\\FFC\\FFChallenge\\train.csv")
 head(y)
 d = merge(y, d, by ="challengeID", all = TRUE)
-
 jobtrain = subset(d, !(is.na(d$jobTraining)) )
-
 jobtrain = jobtrain[,-(2:6)]
-
 rownames(jobtrain) = jobtrain$challengeID
 jobtrain = jobtrain[,-1]
-
-
 a =jobtrain[1:10,1:10]
 a
-
-library(randomForest)
-
-set.seed(100)
-
-jobtrain = jobtrain[ , !names(jobtrain)%in%c("cf4fint","hv5_ppvtae","hv5_ppvtpr","hv5_wj9pr","hv5_wj9ae","hv5_wj10pr","hv5_wj10ae","hv5_dsae")]
+# library(randomForest)
+# set.seed(100)
+# jobtrain = jobtrain[ , !names(jobtrain)%in%c("cf4fint","hv5_ppvtae","hv5_ppvtpr","hv5_wj9pr","hv5_wj9ae","hv5_wj10pr","hv5_wj10ae","hv5_dsae")]
 
 #training
 jobimp = rfImpute( jobTraining~., jobtrain )
@@ -166,11 +158,11 @@ library(VIM)
 library(DMwR)
 library(mice)
 #predimp = knnImputation(jobpred)
-
-test = predict(jobrf, imputed)
-
-a =jobtrain[1:10,1:10]
-a
+# 
+# test = predict(jobrf, imputed)
+# 
+# a =jobtrain[1:10,1:10]
+# a
 
 ```
 
@@ -206,16 +198,509 @@ test5$challengeID = row.names(test5)
 colnames(test5) = c( "jobTraining", "challengeID")
 head(test5)
 jobtrain$challengeID = row.names(jobtrain)
-test5 = rbind( jobtrain$jobTraining, jobtrain$challengeID)
+temp = jobtrain[ , names(jobtrain)%in%c("jobTraining","challengeID")]
+test5 = rbind(test5, temp)
 write.csv(test5, file = "pred25apr.csv")
 
-a =d[1:10,1:10]
+a =total[1:10,1:9]
 a
+```
+
+#### Saving imputed dataset based on job training - 
+```{r}
+
+#jobimp = jobimp[ ,-1]
+total = rbind(imputed,jobimp)
+total$challengeID  = row.names(total)
+total = total[,c(ncol(total),1:(ncol(total)-1))]
+total$challengeID = as.numeric(total$challengeID)
+total <- total[order(total$challengeID),] 
+write.csv(total, file = "job_imp.csv")
+```
+##### prediction for layoff now 
+
+```{r}
+#creating training set
+d = as.data.frame(DT)
+d = merge(y, d, by ="challengeID", all = TRUE)
+laytrain = subset(d, !(is.na(d$layoff)) )
+laytrain = laytrain[,-(2:5)]
+laytrain = laytrain[,-3]
+rownames(laytrain) = laytrain$challengeID
+laytrain = laytrain[,-1]
+laytrain = laytrain[ , !names(laytrain)%in%c("cf4fint","hv5_ppvtae","hv5_ppvtpr","hv5_wj9pr","hv5_wj9ae","hv5_wj10pr","hv5_wj10ae","hv5_dsae")]
+a =laypred[1:10,1:10]
+a
+#imputing train dataset.
+laytrain$layoff = as.factor(laytrain$layoff)
+layimp = rfImpute( layoff~., laytrain )
+layimp$layoff = as.factor(layimp$layoff)
+write.csv(layimp, file = "imputed_train_lay.csv")
+
+#creating pred dataset:
+laypred = subset(d, (is.na(d$layoff)) )
+laypred = laypred[,-(2:5)]
+laypred = laypred[,-3]
+rownames(laypred) = laypred$challengeID
+laypred = laypred[,-1]
+laypred = laypred[,-1]
+laypred = laypred[ , !names(laypred)%in%c("cf4fint","hv5_ppvtae","hv5_ppvtpr","hv5_wj9pr","hv5_wj9ae","hv5_wj10pr","hv5_wj10ae","hv5_dsae")]
+
+#imputing prediction dataset
+ library(missForest) 
+ library(doParallel) 
+
+ registerDoParallel(cores=8)
+
+  predimp = missForest(laypred, maxiter = 5, ntree = 50, variablewise = FALSE,  
+  decreasing = FALSE, verbose = TRUE,  
+  mtry = 15, replace = TRUE,  
+  classwt = NULL, cutoff = NULL, strata = NULL,  
+  sampsize = NULL, nodesize = NULL, maxnodes = NULL,  
+  xtrue = NA, parallelize = c('forests'))
+
+imputed = predimp$ximp
+write.csv(imputed, file = "imputed_pred_lay.csv")
+
+
+
+#training model
+layrf <- randomForest(layoff ~ ., data=layimp, importance=TRUE,
+proximity=TRUE,replace = TRUE )
+
+
+
+
+
+
+```
+
+
+##### datasets for eviction now 
+
+```{r}
+#creating training set
+d = as.data.frame(DT)
+d = merge(y, d, by ="challengeID", all = TRUE)
+evectrain = subset(d, !(is.na(d$eviction)) )
+evectrain = evectrain[,-(2:4)]
+#evectrain = evectrain[,-3]
+rownames(evectrain) = evectrain$challengeID
+evectrain = evectrain[,-c(3,4)]
+evectrain = evectrain[ , !names(evectrain)%in%c("cf4fint","hv5_ppvtae","hv5_ppvtpr","hv5_wj9pr","hv5_wj9ae","hv5_wj10pr","hv5_wj10ae","hv5_dsae")]
+#evectrain = evectrain[,-1]
+a =evectrain[1:10,1:10]
+a
+#imputing train dataset.
+evectrain$eviction = as.factor(evectrain$eviction)
+evecimp = rfImpute( eviction~., evectrain )
+evecimp$eviction = as.factor(evecimp$eviction)
+write.csv(evecimp, file = "imputed_train_evec.csv")
+
+#creating pred dataset:
+evecpred = subset(d, (is.na(d$eviction)) )
+evecpred = evecpred[,-(2:4)]
+#evecpred = evecpred[,-3]
+rownames(evecpred) = evecpred$challengeID
+evecpred = evecpred[,-c(3,4)]
+evecpred = evecpred[,-1]
+evecpred = evecpred[,-1]
+evecpred = evecpred[ , !names(evecpred)%in%c("cf4fint","hv5_ppvtae","hv5_ppvtpr","hv5_wj9pr","hv5_wj9ae","hv5_wj10pr","hv5_wj10ae","hv5_dsae")]
+
+#imputing prediction dataset
+ library(missForest) 
+ library(doParallel) 
+
+ registerDoParallel(cores=8)
+
+  predimp = missForest(evecpred, maxiter = 10, ntree = 50, variablewise = FALSE,  
+  decreasing = FALSE, verbose = TRUE,  
+  mtry = 15, replace = TRUE,  
+  classwt = NULL, cutoff = NULL, strata = NULL,  
+  sampsize = NULL, nodesize = NULL, maxnodes = NULL,  
+  xtrue = NA, parallelize = c('variables'))
+
+imputed = predimp$ximp
+write.csv(imputed, file = "imputed_pred_evic.csv")
+
+
+
+#training model
+layrf <- randomForest(layoff ~ ., data=layimp, importance=TRUE,
+proximity=TRUE,replace = TRUE )
+
+
+
+
+
+
+```
+
+
+##### datasets for material hardships now 
+
+```{r}
+#creating training set
+d = as.data.frame(DT)
+d = merge(y, d, by ="challengeID", all = TRUE)
+mattrain = subset(d, !(is.na(d$materialHardship)) )
+mattrain = mattrain[,-(2:3)]
+mattrain = mattrain[,-c(3:5)]
+rownames(mattrain) = mattrain$challengeID
+mattrain = mattrain[,-1]
+mattrain = mattrain[ , !names(mattrain)%in%c("cf4fint","hv5_ppvtae","hv5_ppvtpr","hv5_wj9pr","hv5_wj9ae","hv5_wj10pr","hv5_wj10ae","hv5_dsae")]
+a =matpred[1:10,1:10]
+a
+#imputing train dataset.
+
+matimp = rfImpute( materialHardship~., mattrain )
+
+write.csv(matimp, file = "imputed_train_mat.csv")
+
+#creating pred dataset:
+matpred = subset(d, (is.na(d$materialHardship)) )
+matpred = matpred[,-(2:3)]
+matpred = matpred[,-c(3:5)]
+rownames(matpred) = matpred$challengeID
+matpred = matpred[,-1]
+matpred = matpred[,-1]
+matpred = matpred[ , !names(matpred)%in%c("cf4fint","hv5_ppvtae","hv5_ppvtpr","hv5_wj9pr","hv5_wj9ae","hv5_wj10pr","hv5_wj10ae","hv5_dsae")]
+
+#imputing prediction dataset
+ library(missForest) 
+ library(doParallel) 
+
+ registerDoParallel(cores=8)
+
+  predimp = missForest(matpred, maxiter = 10, ntree = 50, variablewise = FALSE,  
+  decreasing = FALSE, verbose = TRUE,  
+  mtry = 15, replace = TRUE,  
+  classwt = NULL, cutoff = NULL, strata = NULL,  
+  sampsize = NULL, nodesize = NULL, maxnodes = NULL,  
+  xtrue = NA, parallelize = c('variables'))
+
+imputed = predimp$ximp
+write.csv(imputed, file = "imputed_pred_mat.csv")
+
+
+
+#training model
+layrf <- randomForest(layoff ~ ., data=layimp, importance=TRUE,
+proximity=TRUE,replace = TRUE )
+```
+
+##### datasets for grit now 
+
+```{r}
+#creating training set
+d = as.data.frame(DT)
+d = merge(y, d, by ="challengeID", all = TRUE)
+grittrain = subset(d, !(is.na(d$grit)) )
+grittrain = grittrain[,-(2)]
+grittrain = grittrain[,-(3:6)]
+rownames(grittrain) = grittrain$challengeID
+grittrain = grittrain[,-1]
+grittrain = grittrain[ , !names(grittrain)%in%c("cf4fint","hv5_ppvtae","hv5_ppvtpr","hv5_wj9pr","hv5_wj9ae","hv5_wj10pr","hv5_wj10ae","hv5_dsae")]
+a =gritpred[1:10,1:10]
+a
+#imputing train dataset.
+
+gritimp = rfImpute( grit~., grittrain )
+
+write.csv(gritimp, file = "imputed_train_grit.csv")
+
+#creating pred dataset:
+gritpred = subset(d, (is.na(d$grit)) )
+gritpred = gritpred[,-(2)]
+gritpred = gritpred[,-(3:6)]
+rownames(gritpred) = gritpred$challengeID
+gritpred = gritpred[,-1]
+gritpred = gritpred[ , !names(gritpred)%in%c("cf4fint","hv5_ppvtae","hv5_ppvtpr","hv5_wj9pr","hv5_wj9ae","hv5_wj10pr","hv5_wj10ae","hv5_dsae")]
+
+#imputing prediction dataset
+ library(missForest) 
+ library(doParallel) 
+
+ registerDoParallel(cores=8)
+
+  predimp = missForest(gritpred, maxiter = 3, ntree = 50, variablewise = FALSE,  
+  decreasing = FALSE, verbose = TRUE,  
+  mtry = 15, replace = TRUE,  
+  classwt = NULL, cutoff = NULL, strata = NULL,  
+  sampsize = NULL, nodesize = NULL, maxnodes = NULL,  
+  xtrue = NA, parallelize = c('variables'))
+
+imputed = predimp$ximp
+write.csv(imputed, file = "imputed_pred_grit.csv")
+
+
+
+#training model
+layrf <- randomForest(layoff ~ ., data=layimp, importance=TRUE,
+proximity=TRUE,replace = TRUE )
+
+
+
+
+
+
+```
+
+
+##### datasets for GPA now 
+
+```{r}
+#creating training set
+d = as.data.frame(DT)
+d = merge(y, d, by ="challengeID", all = TRUE)
+laytrain = subset(d, !(is.na(d$layoff)) )
+laytrain = laytrain[,-(2:5)]
+laytrain = laytrain[,-3]
+rownames(laytrain) = laytrain$challengeID
+laytrain = laytrain[,-1]
+laytrain = laytrain[ , !names(laytrain)%in%c("cf4fint","hv5_ppvtae","hv5_ppvtpr","hv5_wj9pr","hv5_wj9ae","hv5_wj10pr","hv5_wj10ae","hv5_dsae")]
+a =layimp[1:10,1:10]
+a
+#imputing train dataset.
+laytrain$layoff = as.factor(laytrain$layoff)
+layimp = rfImpute( layoff~., laytrain )
+layimp$layoff = as.factor(layimp$layoff)
+write.csv(layimp, file = "imputed_train_lay.csv")
+
+#creating pred dataset:
+jobpred = subset(d, (is.na(d$jobTraining)) )
+jobpred = jobpred[,-(2:6)]
+rownames(jobpred) = jobpred$challengeID
+jobpred = jobpred[,-1]
+jobpred = jobpred[,-1]
+jobpred = jobpred[ , !names(jobpred)%in%c("cf4fint","hv5_ppvtae","hv5_ppvtpr","hv5_wj9pr","hv5_wj9ae","hv5_wj10pr","hv5_wj10ae","hv5_dsae")]
+
+#imputing prediction dataset
+ library(missForest) 
+ library(doParallel) 
+
+ registerDoParallel(cores=8)
+
+  predimp = missForest(jobpred, maxiter = 10, ntree = 50, variablewise = FALSE,  
+  decreasing = FALSE, verbose = TRUE,  
+  mtry = 15, replace = TRUE,  
+  classwt = NULL, cutoff = NULL, strata = NULL,  
+  sampsize = NULL, nodesize = NULL, maxnodes = NULL,  
+  xtrue = NA, parallelize = c('forests'))
+
+imputed = predimp$ximp
+write.csv(imputed, file = "imputed_pred_lay.csv")
+
+
+
+#training model
+layrf <- randomForest(layoff ~ ., data=layimp, importance=TRUE,
+proximity=TRUE,replace = TRUE )
+
+
+
+
+
+
+```
+
+
+##Combining the datasets to create a wholesome superset-
+
+```{r}
+
+temp1 = read.csv("C:\\Users\\ms52\\Desktop\\ESOC Temp files\\FFC\\FFChallenge\\imputed_train_evec.csv")
+temp2 = read.csv("C:\\Users\\ms52\\Desktop\\ESOC Temp files\\FFC\\FFChallenge\\imputed_pred_evic.csv")
+dim(temp1)
+dim(temp2)
+total = rbind(temp1,temp2)
+dim(total)
+total[4240:4242,1:10]
+#total = total[,c(ncol(total),1:(ncol(total)-1))]
+total$challengeID = as.numeric(total$challengeID)
+total <- total[order(total$challengeID),] 
+write.csv(total, file = "imputed4.csv")
+
+
+####Combining the imputes
+library(abind)
+temp1 = read.csv()
+
+
 ```
 
 
 
 
+```{r}
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+
+#predimp = kNN(a ,k = 10)
+
+ library(missForest) 
+ library(doParallel) 
+ registerDoParallel(cores=8)
+  predimp = missForest(jobpred, maxiter = 5, ntree = 50, variablewise = FALSE,  
+  decreasing = FALSE, verbose = TRUE,  
+  mtry = 15, replace = TRUE,  
+  classwt = NULL, cutoff = NULL, strata = NULL,  
+  sampsize = NULL, nodesize = NULL, maxnodes = NULL,  
+  xtrue = NA, parallelize = c('forests'))
+
+imputed = predimp$ximp
+write.csv(imputed, file = "imputed.csv")
+
+library(rpart)
+jobtrain$jobTraining = as.factor(jobtrain$jobTraining)
+rpartjob = rpart(jobTraining~., data = jobtrain)
+
+test3 = predict(rpartjob, jobpred, type = "class")
+
+rpartjob2 = rpart(jobTraining~., data = jobimp)
+test5 = as.data.frame(  predict(rpartjob2, imputed, type = "class"))
+test5$challengeID = row.names(test5)
+colnames(test5) = c( "jobTraining", "challengeID")
+head(test5)
+jobtrain$challengeID = row.names(jobtrain)
+temp = jobtrain[ , names(jobtrain)%in%c("jobTraining","challengeID")]
+test5 = rbind(test5, temp)
+write.csv(test5, file = "pred25apr.csv")
+
+a =jobtrain[1:10,1:10]
+a
+```
 
 
 
