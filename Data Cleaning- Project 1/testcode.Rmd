@@ -89,7 +89,7 @@ write.csv(DT, file ="cleaner2.csv")
 
 ```{r}
 
-d = read.csv("C:\\Users\\ms52\\Desktop\\ESOC Temp files\\FFC\\FFChallenge\\cleaner2.csv")
+d = read.csv("C:\\Users\\SONY\\Desktop\\Adv Soc Networks\\FCC_data\\cleaner2.csv")
 d = d[,-(1:2)]
 
 #d = merge(y, d, by ="challengeID", all = TRUE)
@@ -453,13 +453,13 @@ proximity=TRUE,replace = TRUE )
 #creating training set
 d = as.data.frame(DT)
 d = merge(y, d, by ="challengeID", all = TRUE)
-laytrain = subset(d, !(is.na(d$layoff)) )
+gpatrain = subset(d, !(is.na(d$gpa)) )
 laytrain = laytrain[,-(2:5)]
 laytrain = laytrain[,-3]
 rownames(laytrain) = laytrain$challengeID
 laytrain = laytrain[,-1]
 laytrain = laytrain[ , !names(laytrain)%in%c("cf4fint","hv5_ppvtae","hv5_ppvtpr","hv5_wj9pr","hv5_wj9ae","hv5_wj10pr","hv5_wj10ae","hv5_dsae")]
-a =layimp[1:10,1:10]
+a =gpatrain[1:10,1:10]
 a
 #imputing train dataset.
 laytrain$layoff = as.factor(laytrain$layoff)
@@ -509,31 +509,70 @@ proximity=TRUE,replace = TRUE )
 
 ```{r}
 
-temp1 = read.csv("C:\\Users\\ms52\\Desktop\\ESOC Temp files\\FFC\\FFChallenge\\imputed_train_evec.csv")
-temp2 = read.csv("C:\\Users\\ms52\\Desktop\\ESOC Temp files\\FFC\\FFChallenge\\imputed_pred_evic.csv")
+temp1 = read.csv("C:\\Users\\SONY\\Desktop\\Adv Soc Networks\\FCC_data\\imputed_train_gpa.csv")
+temp2 = read.csv("C:\\Users\\SONY\\Desktop\\Adv Soc Networks\\FCC_data\\imputed_pred_gpa.csv")
 dim(temp1)
 dim(temp2)
+# temp1 = temp1[,-2]
+# temp2[1:10,1:10]
+# colnames(temp2)[1] = "challengeID"
 total = rbind(temp1,temp2)
 dim(total)
 total[4240:4242,1:10]
 #total = total[,c(ncol(total),1:(ncol(total)-1))]
 total$challengeID = as.numeric(total$challengeID)
 total <- total[order(total$challengeID),] 
-write.csv(total, file = "imputed4.csv")
+write.csv(total, file = "imputed6.csv")
 
 
 ####Combining the imputes
 library(abind)
-temp1 = read.csv()
+temp1 = read.csv( "C:\\Users\\SONY\\Desktop\\Adv Soc Networks\\FCC_data\\imputed5.csv")
+temp2 = read.csv( "C:\\Users\\SONY\\Desktop\\Adv Soc Networks\\FCC_data\\imputed6.csv")
+total = read.csv( "C:\\Users\\SONY\\Desktop\\Adv Soc Networks\\FCC_data\\final_imputed4.csv")
+
+temp <- abind(temp1,temp2,total, along=3)
+total = apply(temp, c(1,2), mean)
+
+write.csv(total, file = "final_imputed6.csv")
 
 
 ```
 
-
+### Now using the final combined imputed datsets - we train models - 
 
 
 ```{r}
+# training for gpa
+library(randomForest)
+test = read.csv("C:\\Users\\SONY\\Desktop\\Adv Soc Networks\\FCC_data\\final_imputed4.csv")
 
+train = read.csv("C:\\Users\\SONY\\Desktop\\Adv Soc Networks\\FCC_data\\training\\imputed_train_lay.csv")
+row.names(train) = train$challengeID
+train = train[,-1]
+train$layoff = as.factor(train$layoff)
+rf <- randomForest(layoff ~ ., data=train, importance=TRUE,
+proximity=TRUE,replace = TRUE )
+laypred =  subset(d, (is.na(d$layoff)) )
+miss = vector()
+miss = (laypred$challengeID)
+dim(laypred)
+laypred = test[(test$challengeID)%in% miss, ]
+ row.names(laypred) = laypred$challengeID
+laypred = laypred[,-1]
+prediction = as.data.frame(  predict(rf, laypred))
+prediction$challengeID = row.names(prediction)
+colnames(prediction) = c( "layoff", "challengeID")
+head(prediction)
+train$challengeID = row.names(train)
+temp = train[ , names(train)%in%c("layoff","challengeID")]
+prediction = rbind(prediction, temp)
+dim(prediction)
+write.csv(prediction, file = "lay.csv")
+train[1:10,1:10]
+
+final_pred = as.data.frame(0)
+final_pred = merge(final_pred, prediction, by = "challengeID")
 
 ```
 
