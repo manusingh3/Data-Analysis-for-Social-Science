@@ -1,0 +1,466 @@
+---
+  title: "Prediction Mini Project"
+author: "Manu"
+date: "April 19, 2017"
+output: html_document
+---
+  
+  ```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+## Objective
+
+Just as a reminder in my previous proposal I raised the following questions:
+  
+  Hypothesis 1a: The study of network structure in conjunction with survey information
+can better predict or identify the individuals who are at the maximum risk of behaviour adoption
+as compared to predictions made using surveys alone. (i.e. social networks in such a context
+                                                      add significant value)
+
+Hypothesis 1b: In the context of predictive analysis, model complexity will add value
+i.e. machine learning algorithms such as KNN should perform better than simple regression
+models.
+
+Hypothesis 2: Not just the closest friends (i.e. degree one friendships) but extended friend
+circles (i.e. degree two or three or more) also impacts an individual's decision to engage in
+undesirable behaviour
+
+
+Now as part of the miniproject I want to test the validity of hypothesis 1a. ( I also have some interesting results for hypothesis 2 but it needs more cleaning up). 
+
+####Loading the cleaned and preprocessed datasets - 
+
+```{r}
+library(igraph)
+
+load("C:/Users/SONY/Desktop/Adv Soc Networks/Data/Glasgow-friendship.RData")
+load("C:/Users/SONY/Desktop/Adv Soc Networks/Data/Glasgow-demographic.RData")
+load("C:/Users/SONY/Desktop/Adv Soc Networks/Data/Glasgow-substances.RData")
+load("C:/Users/SONY/Desktop/Adv Soc Networks/Data/Glasgow-various.RData")
+# try and viz the friendship networks - 
+
+friendship.1 = ifelse( friendship.1 == 10, 0, friendship.1)
+g1 <- graph_from_adjacency_matrix(friendship.1)
+friendship.3 = ifelse( friendship.3 == 10, 0, friendship.3)
+g3 <- graph_from_adjacency_matrix(friendship.3)
+
+```
+
+Attaching some node attributes to the graph  
+```{r}
+
+g1 <- graph_from_adjacency_matrix(friendship.1)
+#summary(g1)
+
+tobacco = as.data.frame(tobacco)
+tobacco$id = rownames(tobacco)
+
+fam = as.data.frame(familysmoking)
+fam$id = rownames(fam)
+
+age = as.data.frame(age)
+age$id = rownames(age)
+sex.F = as.data.frame(sex.F)
+sex.F$id = rownames(sex.F)
+
+V(g1)$age=as.numeric(age$age[match(V(g1)$name,age$id)])
+V(g1)$sex=as.numeric(sex.F$sex.F[match(V(g1)$name,sex.F$id)])
+V(g1)$smoke=as.numeric(tobacco$t1[match(V(g1)$name,tobacco$id)])
+V(g1)$fam.smoke=as.numeric(fam$smoking.at.home[match(V(g1)$name,fam$id)])
+```
+
+As this is a preliminary model I am taking only a handful of attributes to start off with. The actual dataset has many other factors which I will incorporate in the final project. The mini project is also reflective of the way I thought about the problem so I think it should be easy to follow and intuitive.
+
+
+##Simple model without network inputs
+
+When I think about smoking in adolescents some factors that seem most predictive are age, sex and whether a family member (parents or sibling) smokes. Thus to start off the analysis I considered only these three factors to understand how well they capture the smoking behaviour.  
+```{r}
+
+total = merge(age, sex.F, by = "id")
+total = merge(total, fam, by = "id")
+total = total[,-c(5,6)]
+#total = merge(total, tobacco, by = "id")
+total = total[,-c(6,7)]
+
+total$smoking.at.home = ifelse(total$smoking.at.home ==2, 1, 0)
+total$sex.F = ifelse(total$sex.F ==1, 1, 0)
+total$sex.F = as.factor(total$sex.F)
+#total$smoking.at.home = as.factor(total$smoking.at.home)
+# adding other factors into regression
+
+#average distance from friends
+
+
+#in a romantic relationship - unformtunately who they were dating is not given  
+
+romantic1 = romantic
+colnames(romantic) = c ("romantic1", "romantic2", "romantic3")
+romantic[romantic ==1] = 0
+romantic[romantic ==2] =1
+romantic = ifelse(is.na(romantic), 0,romantic)
+summary(romantic)
+romantic = as.data.frame(romantic); romantic$id = row.names(romantic)
+#money available to students
+colnames(money) = c ("money1", "money2", "money3")
+money[money < 0] <- 0
+money = as.data.frame(money); money$id = row.names(money)
+#substances used
+
+colnames(tobacco) = c("smoking1", "smoking2", "smoking3")
+tobacco = as.data.frame(tobacco); tobacco$id = row.names(tobacco)
+
+colnames(alcohol) = c("alcohol1", "alcohol2", "alcohol3")
+alcohol = as.data.frame(alcohol); alcohol$id = row.names(alcohol)
+
+colnames(cannabis) = c("cannabis1", "cannabis2", "cannabis3")
+cannabis = as.data.frame(cannabis); cannabis$id = row.names(cannabis)
+
+colnames(dist.school) = c("dist.school1", "dist.school2", "dist.school3")
+dist.school = as.data.frame(dist.school); dist.school$id = row.names(dist.school)
+
+
+# average distance from degree 1 friends
+
+
+
+
+head(total)
+#total = total[,-5]
+total1 = total
+
+total = merge(total, romantic, by ="id")
+total = merge(total, money, by ="id")
+total = merge(total, dist.school, by ="id")
+total = merge(total, alcohol, by ="id")
+total = merge(total, cannabis, by ="id")
+total = merge(total, tobacco, by ="id")
+
+head(total)
+
+total = read.csv("C:\\Users\\ms52\\Desktop\\Adv Social Networks\\DataSets\\all_pred_smoking.csv")
+```
+
+```{r}
+total = totalimp
+
+lm1 = lm(smoking1~age+sex.F+smoking.at.home+romantic1+money1+dist.school1, data = total)
+summary(lm1)
+
+
+
+lm2 = lm(smoking1~age+sex.F+smoking.at.home+romantic1+money1+dist.school1+alcohol1+cannabis1, data = total)
+
+summary(lm2)
+
+library(car)
+
+avPlots(lm2)
+pred = total[,1:4]
+smoking = as.data.frame(predict(lm1,pred))
+library(caret)     
+library(mlbench)
+
+rmse <- function(error)
+{
+  sqrt(mean(error^2))
+}
+
+rmse(lm1$residuals)
+postResample(pred = smoking, obs = tobacco$t1 )
+#plot(lm1)
+
+#confusionMatrix(data = smoking$`predict(lm1, pred)`, reference = tobacco$t1, mode = "prec_recall")
+
+```
+The linear regression showed me some very surprising results. While age and gender seem to affect smoking. The presence of a family member who smokes does not  ! (Will need to dig deeper into the issue). But it seems to me looking at the residuals and R sq values that this model is not doing well at all. 
+
+###Model with Network inputs
+
+Now I want to throw in some network information in the mix to see if this improves the model performance. I want to test if a network metric such as centrality will affect smoking behaviour. Do more central and popular students take up smoking. To test this out I calculate 4 different types if centralities - Closeness centrality, Betweeness centrality, Bonancich and eigenvector centrality. 
+
+In the model below I run the regression with the addition of these network measures. 
+
+```{r}
+
+bc = as.data.frame(betweenness(g1)); bc$id = rownames(bc)
+bon=  as.data.frame (bonpow(g1));bon$id = rownames(bon)
+close = as.data.frame(closeness(g1)); close$id = rownames(close)
+eigen = as.data.frame(eigen_centrality(g1)$vector)
+eigen$id = rownames(eigen)
+colnames(eigen)[1]="eigen_cent(g1)"
+
+total = merge(total, bon, by ="id")
+total = merge(total, bc, by ="id")
+total = merge(total, close, by ="id")
+total = merge(total, eigen, by ="id")
+head(total)
+total$id = rownames(total);total=total[,-1]
+lm2 = lm(t1~ age+sex.F+smoking.at.home+`eigen_cent(g1)`+`betweenness(g1)`+`closeness(g1)`+`bonpow(g1)`, data = total)
+summary(lm2)
+
+```
+Unfortunately none of the centrality measures have any impact on the smoking measures. Thus thinking about the problem as I would in real life, I feel an adolescents smoking behaviour is going to be predicted very strongly by their friends. I thus create a new network metric called "smoking index". This is defined loosely as the summation of number of smokers in close friends network (degree 1) divided by total number of friends 
+Trying to model the same with network data
+```{r}
+nodes = list(total$id)
+i = 0
+s = 0
+for (i in 1:160){
+  n = as.data.frame(unlist(ego(g1,1, i, mode = "all")))
+  n$neigh = rownames(n)
+  n= n[-1,-1]
+  n
+  s[i] = sum(vertex_attr(g1, "smoke", index = n))/degree(g1,i)
+  s
+}
+
+total$smoking_degree1 = s
+
+lm3 = lm(smoking1~age+sex.F+smoking.at.home+romantic1+money1+dist.school1+smoking_degree1, data = total)
+
+summary(lm3)
+avPlots(lm3)
+```
+
+
+##calculating the indices for degree 2
+
+```{r}
+
+nodes = list(total$id)
+i = 0
+s = 0
+for (i in 1:160){
+  n1 = as.data.frame(unlist(ego(g1,1, i, mode = "all")))
+  n1$neigh = rownames(n1)
+  n1= n1[-1,-1]
+  n1
+  n2 = as.data.frame(unlist(ego(g1,2, i, mode = "all")))
+  n2$neigh = rownames(n2)
+  n2= n2[-1,-1]
+  n2
+  
+  n2 = n2[!n2 %in% n1]
+  
+  s[i] = sum(vertex_attr(g1, "smoke", index = n2), na.rm = TRUE)/length(n2)
+  s
+}
+
+total$smoking_degree2 = s
+
+lm4 = lm(smoking1~age+sex.F+smoking.at.home+romantic1+money1+dist.school1+smoking_degree2, data = total)
+
+summary(lm4)
+
+lm5 = lm(smoking1~age+sex.F+smoking.at.home+romantic1+money1+dist.school1+smoking_degree1+smoking_degree2, data = total)
+
+summary(lm5)
+
+
+
+```
+
+
+```{r}
+
+nodes = list(total$id)
+i = 0
+s = 0
+for (i in 1:160){
+  n1 = as.data.frame(unlist(ego(g1,1, i, mode = "all")))
+  n1$neigh = rownames(n1)
+  n1= n1[-1,-1]
+  n1
+  n2 = as.data.frame(unlist(ego(g1,2, i, mode = "all")))
+  n2$neigh = rownames(n2)
+  n2= n2[-1,-1]
+  n2
+  
+  n3 = as.data.frame(unlist(ego(g1,3, i, mode = "all")))
+  n3$neigh = rownames(n3)
+  n3= n3[-1,-1]
+  n3
+  
+  n2 = n2[!n2 %in% n1]
+  n3 = n3[!n3 %in% n2]
+  s[i] = sum(vertex_attr(g1, "smoke", index = n3), na.rm = TRUE)/length(n3)
+  s
+}
+
+total$smoking_degree3 = s
+
+
+
+lm6 = lm(smoking1~age+sex.F+smoking.at.home+romantic1+money1+dist.school1+smoking_degree1+smoking_degree2+smoking_degree3, data = total)
+
+summary(lm6)
+
+```
+Fortunately model 3 fits the data much better than before. The residuals are much smaller and R sq has improved. Although this is not the complete story it goes on to show that I am progressing in the correct direction and including network data to a prediction problem certainly adds significant value.
+
+
+model with all the predictors
+```{r}
+lm7 = lm(smoking1~age+sex.F+smoking.at.home+romantic1+money1+dist.school1+smoking_degree1+smoking_degree2+smoking_degree3++alcohol1+cannabis1, data = total)
+
+summary(lm7)
+
+```
+#corrplot
+
+```{r}
+library(corrplot)
+#total = total[,-23]
+total$smoking.at.home = as.numeric(total$smoking.at.home)
+temp = total[ , names(total)%in%c("age","smoking.at.home","romantic1","money1","dist.school1","alcohol1","cannabis1","smoking_degree1","smoking_degree2","smoking_degree3", "smoking1")]
+
+m = cor(temp, use="complete.obs", method="pearson") 
+corrplot(m, method="square")
+
+corrplot.mixed(m)
+```
+
+confusion matrix and sensitivity analysis
+
+```{r}
+##converting smoking outcome to binary 
+library(pROC)
+total$smoking1 = ifelse(total$smoking1 == 1, 0, 1)
+
+total$smoking3 = ifelse(total$smoking3 == 1, 0, 1)
+
+totalimp <- mice(total,m=5,maxit=50,meth='pmm',seed=500)
+totalimp =  complete(totalimp,1)
+
+test = totalimp[ , names(totalimp)%in%c("age","sex.F","smoking.at.home","romantic3","money3","dist.school3","alcohol3","cannabis3","smoking_degree1","smoking_degree2","smoking_degree3")]
+
+colnames(test) = c("age","sex.F","smoking.at.home","romantic1","money1","dist.school1","alcohol1","cannabis1","smoking_degree1","smoking_degree2","smoking_degree3")
+
+x = totalimp[ , names(totalimp)%in%c("age","sex.F","smoking.at.home","romantic1","money1","dist.school1","alcohol1","cannabis1","smoking_degree1","smoking_degree2","smoking_degree3")]
+
+y = totalimp[ , names(totalimp)%in%c("smoking1")]
+
+ y = as.factor(y)
+ library(caret)
+ library(mice)
+library(caret)
+ library(VIM)
+ stripplot(totalimp, pch = 20, cex = 1.2)
+ table(is.na(predictlm))
+ 
+ ###Now the models - GLM
+lm = train(x, y, method = "glm",
+weights = NULL, metric = ifelse(is.factor(y), "Accuracy", "RMSE"),trControl = trainControl(), tuneGrid = NULL)
+predictlm <- (( predict(lm, newdata = test)))
+predproblm <- (( predict(lm, newdata = test, type = "prob")))              
+roc1 = roc(total$smoking3, predproblm[,1], na.rm = TRUE)
+c1 = confusionMatrix(data = y, predictlm)
+
+ ###Now the models - LDA
+lda = train(x, y, method = "lda",
+weights = NULL, metric = ifelse(is.factor(y), "Accuracy", "RMSE"),trControl = trainControl(), tuneGrid = NULL)
+predictlda <- (( predict(lda, newdata = test)))
+predproblda <- (( predict(lda, newdata = test, type = "prob")))              
+roc2 = roc(total$smoking3, predproblda[,1], na.rm = TRUE)
+c2 = confusionMatrix(data = y, predictlda)
+
+ ###Now the models - RF
+rf = train(x, y, method = "rf",
+weights = NULL, metric = ifelse(is.factor(y), "Accuracy", "RMSE"),trControl = trainControl(), tuneGrid = NULL)
+predictrf <- (( predict(rf, newdata = test)))
+predprobrf <- (( predict(rf, newdata = test, type = "prob")))              
+roc3 = roc(total$smoking3, predprobrf[,1], na.rm = TRUE)
+plot(roc2)
+c3 = confusionMatrix(data = y, predictrf)
+
+ ###Now the models - Generalized boozsted models
+knn = train(x, y, method = "gbm",
+weights = NULL, metric = ifelse(is.factor(y), "Accuracy", "RMSE"),trControl = trainControl(), tuneGrid = NULL)
+
+predictknn <- (( predict(knn, newdata = test)))
+predprobknn <- (( predict(knn, newdata = test, type = "prob")))              
+roc4 = roc(total$smoking3, predprobknn[,1], na.rm = TRUE)
+plot(roc3)
+c4 = confusionMatrix(data = y, predictknn)
+
+
+plot(roc1, col = "lightpink4")
+par(new=TRUE)
+plot(roc2, col = "lightsalmon")
+par(new=TRUE)
+plot(roc3, col = "seagreen")
+par(new=TRUE)
+plot(roc4, col = "seagreen1")
+
+legend('bottomright', a , 
+   lty=1, col=c('lightpink4', 'lightsalmon', 'seagreen','seagreen1'), bty='o',lwd = 2, cex=.75, title = "Models With Respective Areas Under Curve")
+
+
+
+
+a = c("Generalised Linear Model (AUC 0.8547)","Linear Discriminant Analysis (AUC 0.8576)","Random Forest (AUC 0.8309)","Generalised Boosted Model (AUC 0.8354)")
+
+
+
+
+
+
+
+
+names(a)[-1]
+
+
+
+
+
+
+
+roc = roc(aSAH$outcome, aSAH$s100b,
+levels=c("Good", "Poor"))
+roc1 = roc(total$smoking3, predproblm[,1], na.rm = TRUE)
+plot(roc)
+
+
+
+
+predictlm = as.data.frame(predictlm)
+a = cbind(total$smoking3, predictlm)
+
+total2$smoking1 = as.factor(total2$smoking1)
+library(rpart)
+total1 = total[!(is.na(total$smoking1)), ]
+total2 = na.rpart(total)
+rf <- rpart(smoking1~age+sex.F+smoking.at.home+romantic1+money1+dist.school1+alcohol1+cannabis1+smoking_degree1+smoking_degree2+smoking_degree3, data = total2)
+
+
+pred1 = predict(lm, test, type = "raw")
+pred2 = predict(rf, type = "class")
+
+simple_roc <- function(labels, scores){
+  labels <- labels[order(scores, decreasing=TRUE)]
+  data.frame(TPR=cumsum(labels)/sum(labels), FPR=cumsum(!labels)/sum(!labels), labels)
+}
+
+simple_roc( total$smoking3,pred1)
+
+roc <- simple_roc(test_set$bad_widget=="TRUE", glm_link_scores)
+with(glm_simple_roc, points(1 - FPR, TPR, col=1 + labels))
+
+roc.perf = performance(pred1, measure = "tpr", x.measure = "fpr")
+plot(roc.perf)
+abline(a=0, b= 1)
+
+````
+
+
+
+
+
+###Next Steps
+
+This was just my first attempt at understanding smoking using this dataset. In the subsequent iterations I will specify my model more explicitly. Instead of using simple regression I think the longitudinal logistic regression where smoking at any given time period (t+1) is a function of various demographic/network attributes such as age, sex, alcohol/marijuana consumption, , friends who smoke, distance between friends, relationship status, money availability, leisure activity preferences and more
+
+I hope the use of a time lagged dependant variable eliminates serial correlation in the errors. The next steps which I am most keen on working are- if any other interesting network measures can be constructed from the data given. I also plan to generate smoking indices for degree 2,3... friends and weighing these columns differently to improve model performance. 
+
+Thus for now I would like ideas on which models you would like to see competing against each other and interesting network measures that can be constructed. I would also like to hear your thoughts on choosing weights for different degrees of seperation. At prese
