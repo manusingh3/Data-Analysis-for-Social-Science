@@ -1,0 +1,132 @@
+---
+title: "Immigration"
+author: "Manu"
+date: "August 17, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Exploratory
+
+```{r}
+
+file = file.choose()
+
+#d = read.csv("C:\\Users\\ms52\\Dropbox (ESOC - Princeton)\\ESOC temp folders-MS\\random papers to read\\effect of education on immigration\\sub-data.txt")
+d = read.csv("C:\\Users\\manus\\Dropbox (ESOC - Princeton)\\ESOC temp folders-MS\\random papers to read\\effect of education on immigration\\subsetted files\\sub-data.txt")
+
+df = (d)
+
+
+
+```
+
+#Data Cleaning
+
+May have to drop race
+```{r}
+
+# df$PAEDUC = ifelse(df$PAEDUC == 97|df$PAEDUC == 98|df$PAEDUC == 99, NA, df$PAEDUC   )
+# df$EDUC = ifelse(df$EDUC == 98|df$EDUC == 99, NA, df$EDUC   )
+# df$MAEDUC = ifelse(df$MAEDUC == 97|df$MAEDUC == 98|df$MAEDUC == 99, NA, df$MAEDUC)
+# 
+# df$RES16 = ifelse(df$RES16 == 8|df$RES16 == 9|df$RES16 == 0, NA, df$RES16)
+# df$MOBILE16 = ifelse(df$MOBILE16 == 8|df$MOBILE16 == 9|df$MOBILE16 == 0, NA, df$MOBILE16)
+# df$BORN = ifelse(df$BORN == 8|df$BORN == 9|df$BORN == 0, NA, df$BORN)
+# 
+# df$PARBORN = ifelse(df$PARBORN == -1|df$PARBORN == 9|df$PARBORN == 7|df$PARBORN == 6|df$PARBORN == 5|df$PARBORN == 4|df$PARBORN == 3,NA, df$PARBORN)
+# 
+# df$INCOME = ifelse(df$INCOME == 0|df$INCOME == 99|df$INCOME == 98|df$INCOME == 13, NA, df$INCOME)
+# 
+# df$PARTYID = ifelse(df$PARTYID == 7|df$PARTYID == 8|df$PARTYID == 9, NA, df$PARTYID)
+# 
+# df$POLVIEWS = ifelse(df$POLVIEWS == 0|df$POLVIEWS == 8|df$POLVIEWS == 9, NA, df$POLVIEWS)
+# 
+# df$JOBFIND = ifelse(df$JOBFIND == 0|df$JOBFIND == 8|df$JOBFIND == 9, NA, df$JOBFIND)
+# 
+# df$JOBLOSE = ifelse(df$JOBLOSE == 0|df$JOBLOSE == 8|df$JOBLOSE == 9, NA, df$JOBLOSE)
+# 
+# df$SATJOB = ifelse(df$SATJOB == 0|df$SATJOB == 8|df$SATJOB == 9, NA, df$SATJOB)
+# 
+# df$UNEMP = ifelse(df$UNEMP == 0|df$UNEMP == 8|df$UNEMP == 9, NA, df$UNEMP)
+# 
+# df$SATJOB = ifelse(df$SATJOB == 0|df$SATJOB == 8|df$SATJOB == 9, NA, df$SATJOB)
+df = (d)
+
+#df$IMMCRIME = ifelse(df$IMMCRIME == 0|df$IMMCRIME == 8|df$IMMCRIME == 9, NA, df$IMMCRIME)
+
+df$IMMAMECO = ifelse(df$IMMAMECO == 0|df$IMMAMECO == 8|df$IMMAMECO == 9, NA, df$IMMAMECO)
+
+#df$IMMJOBS = ifelse(df$IMMJOBS == 0|df$IMMJOBS == 8|df$IMMJOBS == 9, NA, df$IMMJOBS)
+
+# df$LETIN1 = ifelse(df$LETIN1 == 0|df$LETIN1 == 8|df$LETIN1 == 9, NA, df$LETIN1)
+# 
+# df$CITIZEN = ifelse(df$CITIZEN == 0|df$CITIZEN == 9, NA, df$CITIZEN)
+# 
+# df$PARCIT = ifelse(df$PARCIT == 0|df$PARCIT == 8|df$PARCIT == 9, NA, df$PARCIT)
+# 
+# df$EXCLDIMM = ifelse(df$EXCLDIMM == 0|df$EXCLDIMM == 8|df$EXCLDIMM == 9, NA, df$EXCLDIMM)
+
+df = na.omit(df)
+dim(df)
+library(dplyr)
+
+df = df[, names(df) %in% c("CASEID", "YEAR","ID","AGE","SEX", "EDUC", "PAEDUC" , "MAEDUC",  "PRESTG80", "PARBORN", "BORN", "INCOME" ,"POLVIEWS", "JOBLOSE" , "SATJOB", "UNEMP","IMMIMP","IMMCOSTS","IMMRGHTS","IMMCRIME","IMMJOBS" ,"IMMAMECO")]  
+
+
+df1= df[,names(df) %in% c("IMMAMECO","ID", "YEAR"), ]
+test = split(df1, df1$YEAR)
+table(test$`1996`[,2] %in% test$`2004`[,2])
+```
+
+
+```{r}
+#df$YEAR = as.factor(df$YEAR)
+coplot(IMMAMECO ~ YEAR|POLVIEWS, type="b", data=df) 
+
+library(gplots)
+plotmeans(IMMCRIME ~ YEAR, main="Heterogeineity across years", data=df)
+
+fixed.dum <-lm(IMMAMECO ~ EDUC + INCOME+AGE , data=df)
+
+lm<-lm(IMMAMECO ~ . , data=df)
+
+summary(lm)
+```
+
+
+```{r}
+library(plm)
+df = df[,-1]
+
+plmdata = pdim(df, index=c("ID", "YEAR"))
+pooled.model <- lm(IMMAMECO ~ AGE+SEX+EDUC+BORN+SATJOB, data=df, na.action=na.omit)
+summary(pooled.model)
+
+pmodel1 <- plm(IMMAMECO ~ AGE+SEX+EDUC+BORN+SATJOB, data=df, index=c("ID", "YEAR"), na.action=na.omit, model="within")
+summary(pmodel1)
+summary(pmodel1)
+
+library(corrplot)
+M = cor(df)
+corrplot(M, type="lower")
+```
+
+
+### Making a few tables 
+
+```{r}
+
+table(df$EDUC, df$IMMAMECO)
+
+temp = df[, names(df) %in% c( "EDUC",  colnames(df)[16:21])]
+head(temp)
+temp = melt(temp, id = "EDUC")
+head(temp)
+df$EDUC = ifelse(df$EDUC ==98, NA, df$EDUC)
+ggplot(temp, aes(x = EDUC, y = value))+geom_point()+geom_smooth()+facet_wrap(~variable)
+
+```
