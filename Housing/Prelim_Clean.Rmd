@@ -1,0 +1,174 @@
+---
+title: "housing"
+author: "Manu Singh"
+date: "September 6, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+load( 'nychvs11.rda' )
+
+```
+
+
+##Exploration
+
+```{r}
+load( 'nychvs11.rda' )
+
+
+# recode the `tenure2` column (renters vs. owners) so it's a boolean (0 or 1) variable based on ownership of the unit
+occ <- transform( occ , owners = findInterval( tenure2 , 4 ) )
+# convert all 9999999 income values to zero
+occ[ occ$yhincome == 9999999 , 'yhincome' ] <- 0
+
+# convert all 99999 monthly rental values to zer
+occ[ occ$rentm == 99999 , 'rentm' ] <- 0
+
+# http://www.census.gov/housing/nychvs/data/2011/occ_11_long.pdf
+# note all the missings for the variables i'm using that need to be blanked out?  yeah huh.
+
+# convert this newly-modified column to factor variables
+occ$owners <- factor( occ$owners )
+
+# add monthly contract rental categories to the data.frame
+occ$rent.cat <- cut( occ$rentm , c( 0 , 499 , 699 , 799 , 899 , 999 , 1249 , 1499 , 1749 , 1999 , 2499 , Inf ) )
+
+# the new york city borough variable is actually not numeric
+# and will need to be shown broken out, so convert it to a factor
+# at the get-go to make it break out automatically (you'll see)
+occ$borough <- factor( occ$borough )
+
+
+```
+
+```{r}
+load( 'nychvs02.rda' )
+write.csv(per, file = "per2002.csv")
+
+load( 'nychvs05.rda' )
+write.csv(per, file = "per2005.csv")
+
+load( 'nychvs08.rda' )
+write.csv(per, file = "per2008.csv")
+
+
+load( 'nychvs11.rda' )
+write.csv(pers, file = "per2011.csv")
+
+
+load( 'nychvs14.rda' )
+write.csv(per, file = "per2014.csv")
+
+per02 = read.csv("per2002.csv")
+per05 = read.csv("per2005.csv")
+per08 = read.csv("per2008.csv")
+per11 = read.csv("per2011.csv")
+per14 = read.csv("per2014.csv")
+
+per02$year = "2002"
+per05$year = "2005"
+per08$year = "2008"
+per11$year = "2011"
+per14$year = "2014"
+
+library(gtools)
+test = smartbind(per02,per05,per08,per11) 
+write.csv(test, file = "housing_per_master_copy.csv")
+
+```
+
+Filtering out essemtial columns - 
+```{r}
+
+file = "C:\\Users\\manus\\Dropbox (ESOC - Princeton)\\ESOC temp folders-MS\\random papers to read\\income in and housing access\\Code\\housing_occ.csv"
+
+file = "C:\\Users\\ms52\\Dropbox (ESOC - Princeton)\\ESOC temp folders-MS\\random papers to read\\income in and housing access\\Code\\housing_occ.csv"
+
+d = read.csv(file)
+#subset data stored above
+
+
+
+```
+
+##Subset of personal characteristics for the analysis
+
+```{r}
+
+sub = test[,colnames(test) %in% c("layoff", "educ", "seqnum", "relat")]
+
+sub = sub[sub$relat == 1 , ]
+
+total = merge(d, sub, by = "seqnum")
+
+write.csv(sub, file = "educ_subset.csv")
+
+write.csv(total, file = "housing_educ_02_11.csv")
+
+```
+
+
+
+```{r}
+
+d14 = d[ d$year == 2014, ]
+exclude <- !names(d14) %in% c("seqnum", "subboro")
+d14 = d14[,exclude]
+d14 = as.data.frame(d14)
+sub= data.frame(sub)
+
+sub = read.csv(file.choose())
+
+test = d14[sub]
+
+
+
+d14sub = d14[, colnames(d14) %in% c("gross_rent", "borough", "subboro", "total_hhincome")]
+
+d14 = d14[order(d14$total_hhincome, d14$gross_rent, d14$borough, d14$subboro),]
+sub = sub[order(sub$total_hhincome, sub$gross_rent, sub$borough, sub$subboro),]
+
+test = merge(d14, sub, all.y = TRUE, by = c("total_hhincome", "gross_rent", "borough"))
+
+
+ test = inner_join(d14, sub, all.x = TRUE, by = c("total_hhincome", "gross_rent", "borough"))
+all.x = # test = merge(d14, sub, by = intersect(names(d14), names(sub)),all = TRUE)
+#       
+#  test = merge(d14, sub, by = "borough")  
+
+educ = read.csv(file.choose())
+
+d14final = merge(test, educ, by = "seqnum", all.x = TRUE)
+
+write.csv(total, file= "clean_housing_v1.csv")
+
+d = d[d$year == 2002|d$year == 2005|d$year == 2008|d$year == 2011,]
+
+total =  bind_rows(d, d14final)
+
+table(total$year)
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
